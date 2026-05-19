@@ -877,6 +877,48 @@ function displayFirmwareDetails(device, firmwareData) {
                 `;
             }
         }
+
+        // Micro / Inverter firmware (Venus A: VA_inv_app_*)
+        if (firmwareData.data?.micro && firmwareData.data.micro.version) {
+            html += `
+                <div class="firmware-details" style="margin-top: 15px;">
+                    <div class="firmware-detail">
+                        <label>Inverter Firmware (micro)</label>
+                        <value>Version ${firmwareData.data.micro.version}</value>
+                    </div>
+                </div>
+            `;
+
+            if (firmwareData.data.micro.remark || firmwareData.data.micro.chinese) {
+                const releaseNotes = firmwareData.data.micro.remark || firmwareData.data.micro.chinese;
+                const notesId = `notes_micro_${Date.now()}`;
+                html += `
+                    <div class="release-notes">
+                        <h4>📝 Release Notes</h4>
+                        <div id="${notesId}" class="release-notes-content">
+                            <p class="original-text">${releaseNotes}</p>
+                            <div class="translation-section" style="display: none;">
+                                <p class="translated-text"></p>
+                                <small class="translation-note">Translation provided by Google Translate</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary translate-btn" onclick="translateText('${notesId}', '${releaseNotes.replace(/'/g, "\\'")}')">
+                            🌐 Translate to English
+                        </button>
+                    </div>
+                `;
+            }
+
+            if (firmwareData.data.micro.url) {
+                html += `
+                    <div class="download-section">
+                        <button class="btn btn-primary" onclick="downloadFirmware('${firmwareData.data.micro.url}', 'micro_${device.devid}_v${firmwareData.data.micro.version}.bin')">
+                            📥 Download Inverter Firmware v${firmwareData.data.micro.version}
+                        </button>
+                    </div>
+                `;
+            }
+        }
     } else {
         html += '<p style="color: #4CAF50; font-weight: 600;">No firmware data from Marstek servers. This could mean:<br>• No firmware versions are available for your device model<br>• Servers have no firmware data for this device type<br>• Device type not supported by the API</p>';
     }
@@ -991,6 +1033,24 @@ async function updateArchiveStatus(device, firmwareData) {
                     url: firmwareData.data.mppt.url,
                     remark: firmwareData.data.mppt.remark,
                     chinese: firmwareData.data.mppt.chinese,
+                    apiResponse: firmwareData
+                }
+            });
+        }
+
+        // Micro / Inverter firmware
+        if (firmwareData.data?.micro && firmwareData.data.micro.version) {
+            archiveChecks.push({
+                type: 'Micro',
+                version: firmwareData.data.micro.version,
+                deviceType: archiveDeviceType,
+                metadata: {
+                    deviceType: archiveDeviceType,
+                    firmwareType: 'MPPT',  // Submit als MPPT-Typ (valider Wert in submit-fn)
+                    version: firmwareData.data.micro.version,
+                    url: firmwareData.data.micro.url,
+                    remark: firmwareData.data.micro.remark,
+                    chinese: firmwareData.data.micro.chinese,
                     apiResponse: firmwareData
                 }
             });
