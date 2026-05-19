@@ -2,30 +2,22 @@ const { Octokit } = require('@octokit/rest');
 
 // Rate limiting store (in memory - resets on function restart)
 const rateLimitStore = new Map();
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds  
+const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
 const RATE_LIMIT_MAX_REQUESTS = 20; // Lower limit for submissions
 
 function checkRateLimit(ip) {
     const now = Date.now();
     const key = `submit_${ip}`;
-    
     if (!rateLimitStore.has(key)) {
         rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
         return true;
     }
-    
     const limit = rateLimitStore.get(key);
-    
-    // Reset if window expired
     if (now > limit.resetTime) {
         rateLimitStore.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
         return true;
     }
-    
-    if (limit.count >= RATE_LIMIT_MAX_REQUESTS) {
-        return false;
-    }
-    
+    if (limit.count >= RATE_LIMIT_MAX_REQUESTS) return false;
     limit.count++;
     return true;
 }
@@ -33,184 +25,124 @@ function checkRateLimit(ip) {
 function validateOrigin(headers) {
     const origin = headers.origin || headers.referer;
     if (!origin) return false;
-    
-    // Allow requests from Netlify site and localhost for development
+
+    // -------------------------------------------------------
+    // Erlaubte Origins: sphings-dev.de + localhost
+    // -------------------------------------------------------
     const allowedOrigins = [
-        'https://marstek-fw-checker.netlify.app',
-        'http://localhost:8000',
+        'https://sphings-dev.de',
         'http://localhost:3000',
+        'http://localhost:8000',
+        'http://127.0.0.1:3000',
         'http://127.0.0.1:8000'
     ];
-    
+
     return allowedOrigins.some(allowed => origin.startsWith(allowed));
 }
 
 function validateMetadata(metadata) {
-    // Check required fields
     const required = ['deviceType', 'version'];
-    // For non-CT devices, firmwareType is also required
     const isCTDevice = metadata.deviceType && (metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3');
-    if (!isCTDevice) {
-        required.push('firmwareType');
-    }
-    
+    if (!isCTDevice) required.push('firmwareType');
+
     for (const field of required) {
-        if (!metadata[field]) {
-            throw new Error(`Missing required field: ${field}`);
-        }
+        if (!metadata[field]) throw new Error(`Missing required field: ${field}`);
     }
-    
-    // Validate device types (allow both archive types and real device types)
-    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'HME-4', 'HME-3', '1'];
+
+    // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt
+    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3', '1'];
     if (!validDeviceTypes.includes(metadata.deviceType) && !validDeviceTypes.includes(metadata.realDeviceType)) {
         throw new Error(`Invalid device type: ${metadata.deviceType} (real: ${metadata.realDeviceType})`);
     }
-    
-    // Validate firmware types (only for non-CT devices)
+
     if (!isCTDevice) {
         const validFirmwareTypes = ['BMS', 'Control', 'MPPT', 'EMS'];
         if (!validFirmwareTypes.includes(metadata.firmwareType)) {
             throw new Error(`Invalid firmware type: ${metadata.firmwareType}`);
         }
     }
-    
+
     // Check for S3 bucket reference (security check)
     const dataStr = JSON.stringify(metadata);
-    if (!dataStr.includes('amazonaws.com') && !dataStr.includes('hame-ota')) {
-        throw new Error('Invalid firmware source - expected AWS S3 bucket');
+    if (!dataStr.includes('amazonaws.com') && !dataStr.includes('hame-ota') && !dataStr.includes('marstekenergy.com')) {
+        throw new Error('Invalid firmware source - expected known firmware server');
     }
-    
-    // Validate version format (basic check)
+
     if (!/^[\d\.]+$/.test(metadata.version) && metadata.version !== '100') {
         throw new Error(`Invalid version format: ${metadata.version}`);
     }
-    
+
     return true;
 }
 
 exports.handler = async (event, context) => {
-    // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Origin'
     };
 
-    // Handle preflight
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 200, headers, body: '' };
-    }
-
-    // Only allow POST requests
+    if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers, body: '' };
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers,
-            body: JSON.stringify({ error: 'Method not allowed - use POST' })
-        };
+        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed - use POST' }) };
     }
 
     try {
-        // Validate origin
         if (!validateOrigin(event.headers)) {
             return {
                 statusCode: 403,
                 headers,
-                body: JSON.stringify({ 
-                    error: 'Forbidden - invalid origin',
-                    origin: event.headers.origin || event.headers.referer
-                })
+                body: JSON.stringify({ error: 'Forbidden - invalid origin', origin: event.headers.origin || event.headers.referer })
             };
         }
 
-        // Rate limiting
         const clientIP = event.headers['client-ip'] || event.headers['x-forwarded-for'] || 'unknown';
         if (!checkRateLimit(clientIP)) {
-            return {
-                statusCode: 429,
-                headers,
-                body: JSON.stringify({ 
-                    error: 'Rate limit exceeded',
-                    message: 'Maximum 20 submissions per hour'
-                })
-            };
+            return { statusCode: 429, headers, body: JSON.stringify({ error: 'Rate limit exceeded', message: 'Maximum 20 submissions per hour' }) };
         }
 
-        // Parse request body
         let requestData;
         try {
             requestData = JSON.parse(event.body);
         } catch (error) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Invalid JSON in request body' })
-            };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON in request body' }) };
         }
 
         const { metadata, deviceInfo, submissionNotes } = requestData;
-
         if (!metadata) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Missing metadata in request' })
-            };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing metadata in request' }) };
         }
 
-        // Validate metadata
         try {
             validateMetadata(metadata);
         } catch (error) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ 
-                    error: 'Invalid metadata', 
-                    message: error.message
-                })
-            };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid metadata', message: error.message }) };
         }
 
-        // Check if GitHub token is available
         if (!process.env.GITHUB_TOKEN) {
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    error: 'GitHub token not configured',
-                    message: 'Server configuration error - missing GITHUB_TOKEN'
-                })
-            };
+            return { statusCode: 500, headers, body: JSON.stringify({ error: 'GitHub token not configured', message: 'Server configuration error - missing GITHUB_TOKEN' }) };
         }
 
-        // Initialize GitHub client
-        const octokit = new Octokit({
-            auth: process.env.GITHUB_TOKEN
-        });
+        const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
-        const owner = 'rweijnen';
-        const repo = 'marstek-firmware-archive';
+        // -------------------------------------------------------
+        // Geändertes Repository: sphings79/marstek-firmware-archiv
+        // -------------------------------------------------------
+        const owner = 'sphings79';
+        const repo  = 'marstek-firmware-archiv';
 
-        // Determine if this is a CT device for URL generation
         const isCTDevice = metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3';
 
-        // Check for existing open issues for the same firmware version
-        const searchQuery = isCTDevice 
+        const searchQuery = isCTDevice
             ? `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} v${metadata.version}"`
             : `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}"`;
 
         try {
-            const { data: searchResults } = await octokit.rest.search.issuesAndPullRequests({
-                q: searchQuery,
-                per_page: 5
-            });
-
+            const { data: searchResults } = await octokit.rest.search.issuesAndPullRequests({ q: searchQuery, per_page: 5 });
             if (searchResults.total_count > 0) {
-                // Found existing issue(s) for this firmware version
                 const existingIssue = searchResults.items[0];
                 return {
-                    statusCode: 409, // Conflict
+                    statusCode: 409,
                     headers,
                     body: JSON.stringify({
                         success: false,
@@ -230,11 +162,10 @@ exports.handler = async (event, context) => {
             // Continue with submission if search fails
         }
 
-        // Create issue with firmware metadata  
-        const issueTitle = isCTDevice 
+        const issueTitle = isCTDevice
             ? `[Firmware Submission] ${metadata.deviceType} v${metadata.version}`
             : `[Firmware Submission] ${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}`;
-        
+
         const issueBody = `## Firmware Submission Request
 
 **Device Type:** ${metadata.deviceType}
@@ -260,18 +191,15 @@ ${submissionNotes || 'None provided'}
 
         try {
             const { data: issue } = await octokit.rest.issues.create({
-                owner,
-                repo,
+                owner, repo,
                 title: issueTitle,
                 body: issueBody,
                 labels: ['firmware-submission', 'automated']
             });
 
-            // Trigger repository dispatch event for GitHub Actions
             try {
                 await octokit.rest.repos.createDispatchEvent({
-                    owner,
-                    repo,
+                    owner, repo,
                     event_type: 'firmware_submission',
                     client_payload: {
                         issue_number: issue.number,
@@ -298,25 +226,10 @@ ${submissionNotes || 'None provided'}
             };
 
         } catch (githubError) {
-            return {
-                statusCode: 500,
-                headers,
-                body: JSON.stringify({
-                    error: 'Failed to submit to GitHub',
-                    message: githubError.message
-                })
-            };
+            return { statusCode: 500, headers, body: JSON.stringify({ error: 'Failed to submit to GitHub', message: githubError.message }) };
         }
 
     } catch (error) {
-        return {
-            statusCode: 500,
-            headers,
-            body: JSON.stringify({
-                error: 'Internal server error',
-                message: error.message,
-                details: `${error.name}: ${error.message}`
-            })
-        };
+        return { statusCode: 500, headers, body: JSON.stringify({ error: 'Internal server error', message: error.message, details: `${error.name}: ${error.message}` }) };
     }
 };
