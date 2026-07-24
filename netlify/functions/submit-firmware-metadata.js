@@ -74,10 +74,13 @@ function validateMetadata(metadata) {
         }
     }
     
-    // Check for S3 bucket reference (security check)
+    // Restrict firmware source to known-legit Marstek/Hame hosts (security check).
+    // Marstek moved firmware off AWS S3 to their own domain (static-eu.marstekenergy.com),
+    // so both the legacy S3 hosts and the marstekenergy.com hosts are accepted.
+    const allowedHosts = ['amazonaws.com', 'hame-ota', 'marstekenergy.com'];
     const dataStr = JSON.stringify(metadata);
-    if (!dataStr.includes('amazonaws.com') && !dataStr.includes('hame-ota')) {
-        throw new Error('Invalid firmware source - expected AWS S3 bucket');
+    if (!allowedHosts.some(host => dataStr.includes(host))) {
+        throw new Error('Invalid firmware source - expected a known Marstek firmware host');
     }
     
     // Validate version format (basic check)
