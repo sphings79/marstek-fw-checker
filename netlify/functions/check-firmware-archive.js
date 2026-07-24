@@ -72,7 +72,8 @@ exports.handler = async (event, context) => {
         const { deviceType, firmwareType, version } = params;
 
         // Validate required parameters
-        const requiredParams = (deviceType && (deviceType === 'HME-4' || deviceType === 'HME-3')) ? ['deviceType', 'version'] : ['deviceType', 'firmwareType', 'version'];
+        const singleFirmwareDevices = ['HME-4', 'HME-3', 'HMJ-2'];
+        const requiredParams = (deviceType && singleFirmwareDevices.includes(deviceType)) ? ['deviceType', 'version'] : ['deviceType', 'firmwareType', 'version'];
         
         for (const param of requiredParams) {
             if (!params[param]) {
@@ -89,7 +90,7 @@ exports.handler = async (event, context) => {
         }
 
         // Validate device types
-        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'HME-4', 'HME-3'];
+        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'HME-4', 'HME-3', 'HMJ-2'];
         if (!validDeviceTypes.includes(deviceType)) {
             return {
                 statusCode: 400,
@@ -122,9 +123,9 @@ exports.handler = async (event, context) => {
         const owner = 'rweijnen';
         const repo = 'marstek-firmware-archive';
         
-        // CT devices (HME-4, HME-3) have flatter structure (no firmware type subfolder)
-        const isCTDevice = deviceType === 'HME-4' || deviceType === 'HME-3';
-        const path = isCTDevice 
+        // Single-firmware devices have a flatter structure (no firmware type subfolder)
+        const isSingleFirmwareDevice = singleFirmwareDevices.includes(deviceType);
+        const path = isSingleFirmwareDevice
             ? `firmwares/${deviceType}/${version}`
             : `firmwares/${deviceType}/${firmwareType}/${version}`;
 

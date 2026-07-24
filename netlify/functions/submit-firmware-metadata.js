@@ -48,9 +48,9 @@ function validateOrigin(headers) {
 function validateMetadata(metadata) {
     // Check required fields
     const required = ['deviceType', 'version'];
-    // For non-CT devices, firmwareType is also required
-    const isCTDevice = metadata.deviceType && (metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3');
-    if (!isCTDevice) {
+    // Single-firmware devices do not require a firmwareType.
+    const isSingleFirmwareDevice = metadata.deviceType && ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
+    if (!isSingleFirmwareDevice) {
         required.push('firmwareType');
     }
     
@@ -61,13 +61,13 @@ function validateMetadata(metadata) {
     }
     
     // Validate device types (allow both archive types and real device types)
-    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'HME-4', 'HME-3', '1'];
+    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'HME-4', 'HME-3', 'HMJ-2', '1'];
     if (!validDeviceTypes.includes(metadata.deviceType) && !validDeviceTypes.includes(metadata.realDeviceType)) {
         throw new Error(`Invalid device type: ${metadata.deviceType} (real: ${metadata.realDeviceType})`);
     }
     
-    // Validate firmware types (only for non-CT devices)
-    if (!isCTDevice) {
+    // Validate firmware types only for multi-firmware devices.
+    if (!isSingleFirmwareDevice) {
         const validFirmwareTypes = ['BMS', 'Control', 'MPPT', 'EMS'];
         if (!validFirmwareTypes.includes(metadata.firmwareType)) {
             throw new Error(`Invalid firmware type: ${metadata.firmwareType}`);
@@ -192,11 +192,11 @@ exports.handler = async (event, context) => {
         const owner = 'rweijnen';
         const repo = 'marstek-firmware-archive';
 
-        // Determine if this is a CT device for URL generation
-        const isCTDevice = metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3';
+        // Determine whether this device uses the single-firmware archive layout.
+        const isSingleFirmwareDevice = ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
 
         // Check for existing open issues for the same firmware version
-        const searchQuery = isCTDevice 
+        const searchQuery = isSingleFirmwareDevice
             ? `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} v${metadata.version}"`
             : `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}"`;
 
@@ -231,7 +231,7 @@ exports.handler = async (event, context) => {
         }
 
         // Create issue with firmware metadata  
-        const issueTitle = isCTDevice 
+        const issueTitle = isSingleFirmwareDevice
             ? `[Firmware Submission] ${metadata.deviceType} v${metadata.version}`
             : `[Firmware Submission] ${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}`;
         
@@ -239,7 +239,7 @@ exports.handler = async (event, context) => {
 
 **Device Type:** ${metadata.deviceType}
 ${metadata.deviceName ? `**Device Name:** ${metadata.deviceName}` : ''}
-${isCTDevice ? '' : `**Firmware Type:** ${metadata.firmwareType}`}
+${isSingleFirmwareDevice ? '' : `**Firmware Type:** ${metadata.firmwareType}`}
 **Version:** ${metadata.version}
 **Submitted:** ${new Date().toISOString()}
 

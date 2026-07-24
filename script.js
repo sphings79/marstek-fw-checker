@@ -296,12 +296,27 @@ async function getFirmwareInfo(deviceId, deviceType = 'HMG-50', currentVersion =
     }
 
     try {
+        const isB2500DDevice = deviceType === 'HMJ-2';
         // Check if this is a CT device by device type only
         const isCTDevice = deviceType && (deviceType === 'HME-3' || deviceType === 'HME-4');
         
         let params;
         
-        if (isCTDevice) {
+        if (isB2500DDevice) {
+            // The Marstek app currently uses the b2500 endpoint (without a trailing "d")
+            // for B2500D devices reported as HMJ-2.
+            params = {
+                endpoint: '/app/neng/v2_get_otadevice_b2500.php',
+                m: '100',
+                subversion: '0',
+                uid: deviceId,
+                lang: 'English',
+                click: 'true',
+                token: currentToken,
+                mailbox: currentEmail,
+                device_type: deviceType
+            };
+        } else if (isCTDevice) {
             // CT devices use a different API endpoint
             params = {
                 endpoint: '/ems/api/v1/checkAcCoupleOta',
@@ -380,6 +395,37 @@ async function getFirmwareInfo(deviceId, deviceType = 'HMG-50', currentVersion =
         console.error('Firmware check failed:', error);
         throw error;
     }
+}
+
+// Get communication-module firmware information for B2500D/HMJ-2 devices.
+async function getCommunicationFirmwareInfo(deviceId, deviceType) {
+    if (!currentToken) {
+        throw new Error('Not authenticated. Please login first.');
+    }
+
+    const params = new URLSearchParams({
+        endpoint: '/ems/api/v1/getCheckWifiOta',
+        version: '0',
+        devid: deviceId,
+        device_type: deviceType
+    });
+
+    const response = await fetch(`/.netlify/functions/marstek-proxy?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${currentToken}`,
+            'token': currentToken
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Communication firmware API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const responseText = await response.text();
+    console.log('Communication firmware response:', responseText);
+    return JSON.parse(responseText);
 }
 
 // Download firmware file
@@ -551,9 +597,30 @@ async function showFirmwareDetails(device) {
     modal.style.display = 'block';
     
     try {
-        // Pass both device type and name for better detection
-        const firmwareData = await getFirmwareInfo(device.devid, device.type || 'HMG-50', '100', device.name);
-        displayFirmwareDetails(device, firmwareData);
+        const firmwareRequest = getFirmwareInfo(
+            device.devid,
+            device.type || 'HMG-50',
+            '100',
+            device.name
+        );
+        const communicationRequest = device.type === 'HMJ-2'
+            ? getCommunicationFirmwareInfo(device.devid, device.type)
+            : Promise.resolve(null);
+
+        const [firmwareResult, communicationResult] = await Promise.allSettled([
+            firmwareRequest,
+            communicationRequest
+        ]);
+
+        if (firmwareResult.status === 'rejected') {
+            throw firmwareResult.reason;
+        }
+
+        const communicationFirmwareData = communicationResult.status === 'fulfilled'
+            ? communicationResult.value
+            : { error: communicationResult.reason?.message || 'Communication firmware check failed' };
+
+        displayFirmwareDetails(device, firmwareResult.value, communicationFirmwareData);
     } catch (error) {
         modalBody.innerHTML = `
             <div class="firmware-section">
@@ -651,7 +718,7 @@ async function submitFirmwareToArchive(metadata, deviceInfo, notes = '') {
 }
 
 // Display firmware details in modal
-function displayFirmwareDetails(device, firmwareData) {
+function displayFirmwareDetails(device, firmwareData, communicationFirmwareData = null) {
     const modalBody = document.getElementById('modalBody');
     
     let html = '';
@@ -882,6 +949,63 @@ function displayFirmwareDetails(device, firmwareData) {
     }
     
     html += '</div>';
+
+    if (device.type === 'HMJ-2') {
+        const communicationData = communicationFirmwareData?.data;
+        const hasCommunicationUpdate = Array.isArray(communicationData)
+            ? communicationData.length > 0
+            : Boolean(communicationData && (typeof communicationData !== 'object' || Object.keys(communicationData).length > 0));
+
+        html += `
+            <div class="firmware-section">
+                <h3>${hasCommunicationUpdate ? 'Communication Firmware Available' : 'Communication Module'}</h3>
+        `;
+
+        if (communicationFirmwareData?.error) {
+            html += `<p style="color: #f44336; font-weight: 600;">Communication firmware check failed: ${communicationFirmwareData.error}</p>`;
+        } else if (hasCommunicationUpdate) {
+            html += '<p style="color: #FF9800; font-weight: 600;">Marstek servers returned communication-module firmware data.</p>';
+
+            const communicationVersion = communicationData?.version || 'Unknown';
+            const communicationUrl = communicationData?.url;
+
+            html += `
+                <div class="firmware-details">
+                    <div class="firmware-detail">
+                        <label>Communication Firmware</label>
+                        <value>Version ${communicationVersion}</value>
+                    </div>
+                </div>
+            `;
+
+            if (communicationUrl) {
+                let communicationFilename = `communication_${device.devid}_v${communicationVersion}.rbl`;
+                try {
+                    communicationFilename = new URL(communicationUrl).pathname.split('/').pop() || communicationFilename;
+                } catch (error) {
+                    console.warn('Could not derive communication firmware filename:', error);
+                }
+
+                html += `
+                    <div class="download-section">
+                        <button class="btn btn-primary" onclick='downloadFirmware(${JSON.stringify(communicationUrl)}, ${JSON.stringify(communicationFilename)})'>
+                            Download Communication Firmware v${communicationVersion}
+                        </button>
+                    </div>
+                `;
+            }
+        } else {
+            html += '<p style="color: #4CAF50; font-weight: 600;">No communication-module firmware update is available.</p>';
+        }
+
+        html += `
+                <div class="release-notes">
+                    <h4>Communication API Response</h4>
+                    <pre style="background: #2d2d2d; color: #e0e0e0; padding: 15px; border-radius: 6px; overflow-x: auto; font-size: 12px; max-height: 200px;">${JSON.stringify(communicationFirmwareData, null, 2)}</pre>
+                </div>
+            </div>
+        `;
+    }
     
     // Raw API Response (for debugging)
     html += `
@@ -1004,9 +1128,9 @@ async function updateArchiveStatus(device, firmwareData) {
         
         // Check each firmware type
         for (const check of archiveChecks) {
-            // For CT devices (HME-4, HME-3), don't pass firmware type (flatter structure)
-            const isCTDevice = check.deviceType === 'HME-4' || check.deviceType === 'HME-3';
-            const archiveResult = isCTDevice 
+            // Single-firmware devices use the flatter archive structure.
+            const isSingleFirmwareDevice = check.deviceType === 'HME-4' || check.deviceType === 'HME-3' || check.deviceType === 'HMJ-2';
+            const archiveResult = isSingleFirmwareDevice
                 ? await checkFirmwareArchive(check.deviceType, '', check.version)
                 : await checkFirmwareArchive(check.deviceType, check.type, check.version);
             
@@ -1346,10 +1470,23 @@ async function showFirmwareRawData(deviceId) {
     
     try {
         // Determine which API endpoint and parameters will be used
+        const isB2500DDevice = device.type === 'HMJ-2';
         const isCTDevice = device.type && (device.type === 'HME-3' || device.type === 'HME-4');
         
         let apiUrl, params;
-        if (isCTDevice) {
+        if (isB2500DDevice) {
+            apiUrl = 'https://eu.hamedata.com/app/neng/v2_get_otadevice_b2500.php';
+            params = {
+                'm': '100',
+                'subversion': '0',
+                'uid': device.devid,
+                'lang': 'English',
+                'click': 'true',
+                'token': currentToken,
+                'mailbox': currentEmail,
+                'device_type': device.type
+            };
+        } else if (isCTDevice) {
             // CT device endpoint
             apiUrl = 'https://eu.hamedata.com/ems/api/v1/checkAcCoupleOta';
             params = {
@@ -1384,7 +1521,20 @@ async function showFirmwareRawData(deviceId) {
         const fullUrl = `${apiUrl}?${urlParams.toString()}`;
         
         // Make the API call
-        const firmwareData = await getFirmwareInfo(device.devid, device.type || 'HMG-50', '100', device.name);
+        const firmwareData = await getFirmwareInfo(
+            device.devid,
+            device.type || 'HMG-50',
+            '100',
+            device.name
+        );
+        let communicationFirmwareData = null;
+        if (isB2500DDevice) {
+            try {
+                communicationFirmwareData = await getCommunicationFirmwareInfo(device.devid, device.type);
+            } catch (error) {
+                communicationFirmwareData = { error: error.message };
+            }
+        }
         
         // Show raw response with API details
         const rawResponse = {
@@ -1392,10 +1542,12 @@ async function showFirmwareRawData(deviceId) {
                 id: device.devid,
                 name: device.name,
                 type: device.type,
-                detectedAs: isCTDevice ? 'CT Device' : 'Standard Device'
+                detectedAs: isB2500DDevice ? 'B2500D Device' : (isCTDevice ? 'CT Device' : 'Standard Device')
             },
             apiCall: {
-                endpoint: isCTDevice ? '/ems/api/v1/checkAcCoupleOta' : '/ems/api/v2/checkSmallBalconyOTA',
+                endpoint: isB2500DDevice
+                    ? '/app/neng/v2_get_otadevice_b2500.php'
+                    : (isCTDevice ? '/ems/api/v1/checkAcCoupleOta' : '/ems/api/v2/checkSmallBalconyOTA'),
                 fullUrl: fullUrl,
                 method: 'GET',
                 parameters: params
@@ -1403,6 +1555,24 @@ async function showFirmwareRawData(deviceId) {
             timestamp: new Date().toISOString(),
             response: firmwareData
         };
+
+        if (isB2500DDevice) {
+            const communicationParams = {
+                version: '0',
+                devid: device.devid,
+                device_type: device.type
+            };
+            const communicationUrl = `https://eu.hamedata.com/ems/api/v1/getCheckWifiOta?${new URLSearchParams(communicationParams).toString()}`;
+
+            rawResponse.communicationApiCall = {
+                endpoint: '/ems/api/v1/getCheckWifiOta',
+                fullUrl: communicationUrl,
+                method: 'GET',
+                parameters: communicationParams,
+                authentication: 'Session token forwarded in Authorization and token headers'
+            };
+            rawResponse.communicationResponse = communicationFirmwareData;
+        }
         
         // Store original data for reset functionality
         originalApiData = rawResponse;

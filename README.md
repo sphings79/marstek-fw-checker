@@ -43,6 +43,7 @@ Visit: **[https://marstek-fw-checker.netlify.app](https://marstek-fw-checker.net
 | Venus E V1/V2 | HMG-50 | ✅ Full (BMS, Control, MPPT) |
 | Venus E V3 | VNSE3-0 | ✅ Full (BMS, Control, MPPT) |
 | CT Devices | CT002/CT003 | ✅ Simplified (Single firmware) |
+| B2500D | HMJ-2 | ✅ Simplified (Single firmware) |
 
 ## 🗃️ Community Firmware Archive
 
@@ -105,6 +106,8 @@ python -m http.server 8000
 - **Authentication**: `https://eu.hamedata.com/app/Solar/v2_get_device.php`
 - **Standard Devices**: `https://eu.hamedata.com/ems/api/v2/checkSmallBalconyOTA`
 - **CT Devices**: `https://eu.hamedata.com/ems/api/v1/checkAcCoupleOta`
+- **B2500D (HMJ-2)**: `https://eu.hamedata.com/app/neng/v2_get_otadevice_b2500.php`
+- **B2500D Communication Module**: `https://eu.hamedata.com/ems/api/v1/getCheckWifiOta`
 
 ### Archive APIs
 - **Status Check**: `/.netlify/functions/check-firmware-archive`
