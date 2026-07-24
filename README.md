@@ -75,11 +75,17 @@ firmwares/
 # Install dependencies
 npm install
 
-# Run local development server
+# Run local development server (required)
 netlify dev
-# or simple HTTP server
-python -m http.server 8000
 ```
+
+> **Important**: You must use `netlify dev` (not a plain static server such as
+> `python -m http.server`). All Marstek API calls go through the Netlify
+> Functions proxy at `/.netlify/functions/marstek-proxy`. A plain static server
+> does not serve those functions, so login fails with
+> `Authentication failed: 404 Not Found`. If you just want to use the tool
+> without running it locally, use the hosted site:
+> [marstek-fw-checker.netlify.app](https://marstek-fw-checker.netlify.app).
 
 ### Environment Variables
 - `GITHUB_TOKEN`: GitHub personal access token for archive operations
