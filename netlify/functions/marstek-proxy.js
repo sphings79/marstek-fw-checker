@@ -2,7 +2,7 @@ exports.handler = async (event, context) => {
   // Set CORS headers for preflight requests
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, token',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   };
 
@@ -40,12 +40,24 @@ exports.handler = async (event, context) => {
       console.log('Proxying API request to:', targetUrl);
     }
 
+    const upstreamHeaders = {
+      'User-Agent': 'Marstek-Firmware-Checker/1.0',
+    };
+
+    // Some Marstek endpoints authenticate with headers instead of query parameters.
+    // Only forward these headers to the fixed API host, never to arbitrary downloads.
+    if (download !== 'true') {
+      const authorization = event.headers?.authorization || event.headers?.Authorization;
+      const token = event.headers?.token;
+
+      if (authorization) upstreamHeaders.Authorization = authorization;
+      if (token) upstreamHeaders.token = token;
+    }
+
     // Make the request
     const response = await fetch(targetUrl, {
       method: event.httpMethod,
-      headers: {
-        'User-Agent': 'Marstek-Firmware-Checker/1.0',
-      },
+      headers: upstreamHeaders,
     });
 
     // Handle downloads vs API responses differently

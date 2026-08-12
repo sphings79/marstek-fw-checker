@@ -42,30 +42,38 @@ function validateOrigin(headers) {
 
 function validateMetadata(metadata) {
     const required = ['deviceType', 'version'];
-    const isCTDevice = metadata.deviceType && (metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3');
-    if (!isCTDevice) required.push('firmwareType');
+    // Single-firmware devices do not require a firmwareType.
+    const isSingleFirmwareDevice = metadata.deviceType && ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
+    if (!isSingleFirmwareDevice) {
+        required.push('firmwareType');
+    }
 
     for (const field of required) {
         if (!metadata[field]) throw new Error(`Missing required field: ${field}`);
     }
 
-    // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt
-    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3', '1'];
+    // Validate device types (allow both archive types and real device types).
+    // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt; HMJ-2 (B2500D) aus upstream.
+    const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3', 'HMJ-2', '1'];
     if (!validDeviceTypes.includes(metadata.deviceType) && !validDeviceTypes.includes(metadata.realDeviceType)) {
         throw new Error(`Invalid device type: ${metadata.deviceType} (real: ${metadata.realDeviceType})`);
     }
 
-    if (!isCTDevice) {
+    // Validate firmware types only for multi-firmware devices.
+    if (!isSingleFirmwareDevice) {
         const validFirmwareTypes = ['BMS', 'Control', 'MPPT', 'EMS'];
         if (!validFirmwareTypes.includes(metadata.firmwareType)) {
             throw new Error(`Invalid firmware type: ${metadata.firmwareType}`);
         }
     }
 
-    // Check for S3 bucket reference (security check)
+    // Restrict firmware source to known-legit Marstek/Hame hosts (security check).
+    // Marstek moved firmware off AWS S3 to their own domain (static-eu.marstekenergy.com),
+    // so both the legacy S3 hosts and the marstekenergy.com hosts are accepted.
+    const allowedHosts = ['amazonaws.com', 'hame-ota', 'marstekenergy.com'];
     const dataStr = JSON.stringify(metadata);
-    if (!dataStr.includes('amazonaws.com') && !dataStr.includes('hame-ota') && !dataStr.includes('marstekenergy.com')) {
-        throw new Error('Invalid firmware source - expected known firmware server');
+    if (!allowedHosts.some(host => dataStr.includes(host))) {
+        throw new Error('Invalid firmware source - expected a known Marstek firmware host');
     }
 
     if (!/^[\d\.]+$/.test(metadata.version) && metadata.version !== '100') {
@@ -131,9 +139,11 @@ exports.handler = async (event, context) => {
         const owner = 'sphings79';
         const repo  = 'marstek-firmware-archiv';
 
-        const isCTDevice = metadata.deviceType === 'HME-4' || metadata.deviceType === 'HME-3';
+        // Determine whether this device uses the single-firmware archive layout.
+        const isSingleFirmwareDevice = ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
 
-        const searchQuery = isCTDevice
+        // Check for existing open issues for the same firmware version
+        const searchQuery = isSingleFirmwareDevice
             ? `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} v${metadata.version}"`
             : `repo:${owner}/${repo} is:issue is:open label:firmware-submission "${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}"`;
 
@@ -162,7 +172,8 @@ exports.handler = async (event, context) => {
             // Continue with submission if search fails
         }
 
-        const issueTitle = isCTDevice
+        // Create issue with firmware metadata
+        const issueTitle = isSingleFirmwareDevice
             ? `[Firmware Submission] ${metadata.deviceType} v${metadata.version}`
             : `[Firmware Submission] ${metadata.deviceType} ${metadata.firmwareType} v${metadata.version}`;
 
@@ -170,7 +181,7 @@ exports.handler = async (event, context) => {
 
 **Device Type:** ${metadata.deviceType}
 ${metadata.deviceName ? `**Device Name:** ${metadata.deviceName}` : ''}
-${isCTDevice ? '' : `**Firmware Type:** ${metadata.firmwareType}`}
+${isSingleFirmwareDevice ? '' : `**Firmware Type:** ${metadata.firmwareType}`}
 **Version:** ${metadata.version}
 **Submitted:** ${new Date().toISOString()}
 

@@ -20,5 +20,5 @@
   for = "/.netlify/functions/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Headers = "Content-Type, Authorization, token"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"

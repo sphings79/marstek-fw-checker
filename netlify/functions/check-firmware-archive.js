@@ -44,7 +44,9 @@ exports.handler = async (event, context) => {
         const params = event.queryStringParameters || {};
         const { deviceType, firmwareType, version } = params;
 
-        const requiredParams = (deviceType && (deviceType === 'HME-4' || deviceType === 'HME-3'))
+        // Validate required parameters
+        const singleFirmwareDevices = ['HME-4', 'HME-3', 'HMJ-2'];
+        const requiredParams = (deviceType && singleFirmwareDevices.includes(deviceType))
             ? ['deviceType', 'version']
             : ['deviceType', 'firmwareType', 'version'];
 
@@ -54,8 +56,9 @@ exports.handler = async (event, context) => {
             }
         }
 
-        // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt
-        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3'];
+        // Validate device types
+        // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt; HMJ-2 (B2500D) aus upstream.
+        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3', 'HMJ-2'];
         if (!validDeviceTypes.includes(deviceType)) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid device type', validTypes: validDeviceTypes, provided: deviceType }) };
         }
@@ -72,8 +75,9 @@ exports.handler = async (event, context) => {
         const owner = 'sphings79';
         const repo  = 'marstek-firmware-archiv';
 
-        const isCTDevice = deviceType === 'HME-4' || deviceType === 'HME-3';
-        const path = isCTDevice
+        // Single-firmware devices have a flatter structure (no firmware type subfolder)
+        const isSingleFirmwareDevice = singleFirmwareDevices.includes(deviceType);
+        const path = isSingleFirmwareDevice
             ? `firmwares/${deviceType}/${version}`
             : `firmwares/${deviceType}/${firmwareType}/${version}`;
 
