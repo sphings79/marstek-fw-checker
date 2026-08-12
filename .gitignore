@@ -22,3 +22,9 @@ node_modules/
 
 # Screenshots folder
 screenshots/
+
+# Local notes & backups (nicht auf GitHub)
+PATCHES_für_Claude.md
+SETUP.md
+SETUP_GITHUB.md
+script.js vor ptach/
