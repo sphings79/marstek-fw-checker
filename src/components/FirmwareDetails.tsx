@@ -4,19 +4,18 @@ import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Dialog from '@mui/material/Dialog'
 import DialogContent from '@mui/material/DialogContent'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
+import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import CloseIcon from '@mui/icons-material/Close'
-import DownloadIcon from '@mui/icons-material/Download'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import {
   getFirmwareInfo,
@@ -24,7 +23,7 @@ import {
   parseCommunicationFirmware,
   type Device,
 } from '../lib/api.ts'
-import { ArchiveActions, type ArchiveTarget } from './ArchiveActions.tsx'
+import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
 import { deviceImage } from '../lib/deviceImage.ts'
 
 interface FwEntry {
@@ -44,17 +43,6 @@ function filenameFromUrl(url: string | undefined, fallback: string): string {
   } catch {
     return fallback
   }
-}
-
-function download(url: string, filename: string) {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.target = '_blank'
-  a.rel = 'noopener'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
 }
 
 // Build the list of downloadable firmware entries from the two API responses.
@@ -236,19 +224,17 @@ export function FirmwareDetails({
                   {e.note}
                 </Typography>
               )}
-              <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-                {e.url && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => download(e.url!, e.filename)}
-                  >
-                    Download
-                  </Button>
-                )}
-                {e.archive && <ArchiveActions target={e.archive} />}
-              </Stack>
+              {e.url && e.archive ? (
+                <DownloadDonate url={e.url} filename={e.filename} target={e.archive} />
+              ) : e.url ? (
+                <Link href={e.url} target="_blank" rel="noopener">
+                  Download
+                </Link>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  No download URL provided by the server.
+                </Typography>
+              )}
               <Divider sx={{ mt: 2 }} />
             </Box>
           ))}
