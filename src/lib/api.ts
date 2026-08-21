@@ -233,6 +233,24 @@ export async function submitToArchive(
   return data
 }
 
+/** True if the text contains Chinese characters (worth offering a translation). */
+export function hasChinese(text: string | undefined | null): boolean {
+  return !!text && /[一-龥]/.test(text)
+}
+
+/** Translate text via the free MyMemory API (CORS-enabled, client-side). */
+export async function translateText(text: string, from = 'zh', to = 'en'): Promise<string> {
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+    text,
+  )}&langpair=${from}|${to}`
+  const res = await fetch(url)
+  const data = await res.json()
+  if (data.responseStatus === 200 && data.responseData?.translatedText) {
+    return data.responseData.translatedText as string
+  }
+  throw new Error('Translation service unavailable')
+}
+
 /** Mask sensitive device identifiers before archive submission. */
 export function obfuscateDeviceInfo(info: Device): Record<string, unknown> {
   const mask = (v: unknown) => {

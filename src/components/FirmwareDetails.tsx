@@ -25,6 +25,7 @@ import {
 } from '../lib/api.ts'
 import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
 import { deviceImage } from '../lib/deviceImage.ts'
+import { ReleaseNote } from './ReleaseNote.tsx'
 
 interface FwEntry {
   key: string
@@ -219,11 +220,7 @@ export function FirmwareDetails({
                 </Typography>
                 <Chip size="small" color="warning" label={`v${e.version}`} />
               </Stack>
-              {e.note && (
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1, whiteSpace: 'pre-line' }}>
-                  {e.note}
-                </Typography>
-              )}
+              {e.note && <ReleaseNote note={e.note} />}
               {e.url && e.archive ? (
                 <DownloadDonate url={e.url} filename={e.filename} target={e.archive} />
               ) : e.url ? (
