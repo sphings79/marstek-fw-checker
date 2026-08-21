@@ -573,6 +573,12 @@ function displayDevices(devices) {
             if ((device.type && device.type.startsWith('VNSE')) || deviceName.includes('VENUS E V3') || deviceName.includes('VNSE')) {
                 // Venus E V3
                 deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1.1_a3444687-64a0-4ed7-8ed9-9f9966428883.jpg?v=1755566381" alt="Venus E V3" class="device-image">`;
+            } else if (device.type === 'VNSD-0' || deviceName.includes('VENUS D') || deviceName.includes('VNSD')) {
+                // Venus D
+                deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1_004a49b7-0c21-4257-8031-335124506038_large.webp?v=1757904157" alt="Venus D" class="device-image">`;
+            } else if (device.type === 'VNSA-0' || deviceName.includes('VENUS A') || deviceName.includes('VNSA')) {
+                // Venus A
+                deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1_8bd3eed7-111c-4155-8256-bd2db99e44a8.webp?v=1757001771" alt="Venus A" class="device-image">`;
             } else if (device.type === 'HME-3') {
                 // HME-3 device 
                 deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1_a21575ea-19c4-4f61-98d1-83e6112704a0.jpg?v=1739950399" alt="HME-3" class="device-image">`;
@@ -585,6 +591,9 @@ function displayDevices(devices) {
             } else if (device.type === 'HMG-50' || deviceName.includes('VENUS E') || !device.type) {
                 // Venus E V1/V2 or default
                 deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1_2_d5e4109f-859e-46be-be9b-40e262490d4f.jpg?v=1740540638" alt="Venus E" class="device-image">`;
+            } else {
+                // Unknown device type — generic fallback so the card is never blank
+                deviceImage = `<img src="https://eu.marstekenergy.com/cdn/shop/files/1_2_d5e4109f-859e-46be-be9b-40e262490d4f.jpg?v=1740540638" alt="${device.type || 'Marstek device'}" class="device-image">`;
             }
             
             deviceCard.innerHTML = `
