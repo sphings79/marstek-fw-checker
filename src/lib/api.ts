@@ -75,12 +75,12 @@ export async function getDeviceList(token: string, email: string): Promise<Devic
   return []
 }
 
-/** System firmware (Control/BMS/MPPT/Micro), CT (AcCouple) or B2500 depending on type. */
-export async function getFirmwareInfo(
+/** Build the system-firmware request params (endpoint + query) for a device. */
+export function firmwareParams(
   device: Device,
   token: string,
   email: string,
-): Promise<any> {
+): Record<string, string> {
   const type = device.type
   const isB2500D = type === 'HMJ-2'
   const isCT = type === 'HME-3' || type === 'HME-4'
@@ -125,7 +125,12 @@ export async function getFirmwareInfo(
       inv: '0',
     }
   }
-  return proxyGet(params)
+  return params
+}
+
+/** System firmware (Control/BMS/MPPT/Micro), CT (AcCouple) or B2500 depending on type. */
+export async function getFirmwareInfo(device: Device, token: string, email: string): Promise<any> {
+  return proxyGet(firmwareParams(device, token, email))
 }
 
 /** Query params for the FC41D communication-module OTA endpoint (getCheckWifiOta). */
@@ -154,6 +159,29 @@ export async function getCommunicationFirmware(
   email: string,
 ): Promise<any> {
   return proxyGet(communicationParams(device, token, email))
+}
+
+/** Build the full hamedata URL from a params record (endpoint + query). */
+export function hamedataUrl(params: Record<string, string>): string {
+  const { endpoint, ...rest } = params
+  return `https://eu.hamedata.com${endpoint}?${new URLSearchParams(rest).toString()}`
+}
+
+/** Run an arbitrary hamedata URL through the proxy (for the advanced API tester). */
+export async function testHamedataUrl(fullUrl: string): Promise<{ status: number; response: any }> {
+  const u = new URL(fullUrl)
+  const endpoint = u.pathname + u.search
+  const res = await fetch(`${PROXY}?endpoint=${encodeURIComponent(endpoint)}`, {
+    headers: { Accept: 'application/json' },
+  })
+  const text = await res.text()
+  let response: any
+  try {
+    response = JSON.parse(text)
+  } catch {
+    response = text
+  }
+  return { status: res.status, response }
 }
 
 export interface CommunicationFirmware {

@@ -26,6 +26,7 @@ import {
 import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
 import { deviceImage } from '../lib/deviceImage.ts'
 import { ReleaseNote } from './ReleaseNote.tsx'
+import { ApiTester } from './ApiTester.tsx'
 
 interface FwEntry {
   key: string
@@ -260,6 +261,19 @@ export function FirmwareDetails({
               >
                 {JSON.stringify(raw, null, 2)}
               </Box>
+            </AccordionDetails>
+          </Accordion>
+        )}
+
+        {!loading && (
+          <Accordion disableGutters elevation={0} sx={{ bgcolor: 'transparent' }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 0 }}>
+              <Typography variant="body2" color="text.secondary">
+                API tester (advanced)
+              </Typography>
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 0 }}>
+              <ApiTester device={device} token={token} email={email} />
             </AccordionDetails>
           </Accordion>
         )}
