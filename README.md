@@ -29,7 +29,11 @@ and optionally donate them to a community firmware archive.
   <img src="docs/screenshots/01-login.png" alt="Login screen" width="49%">
 </p>
 
-<p align="center"><em>Desktop and mobile, light and dark — the UI is fully responsive and theme-aware.</em></p>
+<p align="center">
+  <img src="docs/screenshots/04-overview-mobile.png" alt="Mobile overview" width="32%">
+</p>
+
+<p align="center"><em>Fully responsive (desktop &amp; mobile) and theme-aware (light &amp; dark).</em></p>
 
 ---
 
