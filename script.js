@@ -1560,18 +1560,18 @@ async function translateText(containerId, originalText) {
 // Fetch and display GitHub version info
 async function loadVersionInfo() {
     try {
-        const response = await fetch('https://api.github.com/repos/rweijnen/marstek-fw-checker/commits/master');
+        const response = await fetch('https://api.github.com/repos/sphings79/marstek-fw-checker/commits/master');
         const commit = await response.json();
-        
+
         const shortSha = commit.sha.substring(0, 7);
         const commitDate = new Date(commit.commit.author.date).toLocaleDateString();
         const commitMessage = commit.commit.message.split('\n')[0]; // First line only
-        
+
         const versionInfo = document.getElementById('versionInfo');
         versionInfo.innerHTML = `
             <p>
                 <small>
-                    Version: <a href="https://github.com/rweijnen/marstek-fw-checker/commit/${commit.sha}" target="_blank">${shortSha}</a>
+                    Version: <a href="https://github.com/sphings79/marstek-fw-checker/commit/${commit.sha}" target="_blank">${shortSha}</a>
                     | ${commitDate} | ${commitMessage}
                 </small>
             </p>
