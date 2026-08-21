@@ -89,7 +89,8 @@ exports.handler = async (event, context) => {
 
             if (Array.isArray(contents)) {
                 const metadataFile = contents.find(file => file.name === 'metadata.json');
-                const binFile = contents.find(file => file.name.endsWith('.bin'));
+                // Firmware container: .bin (system firmware) or .rbl (FC41D comm module).
+                const binFile = contents.find(file => file.name.endsWith('.bin') || file.name.endsWith('.rbl'));
 
                 if (metadataFile) {
                     try {

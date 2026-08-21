@@ -61,7 +61,8 @@ function validateMetadata(metadata) {
 
     // Validate firmware types only for multi-firmware devices.
     if (!isSingleFirmwareDevice) {
-        const validFirmwareTypes = ['BMS', 'Control', 'MPPT', 'EMS'];
+        // FC41D = WLAN-/Kommunikationsmodul, als Firmware-Typ unter dem Gerät.
+        const validFirmwareTypes = ['BMS', 'Control', 'MPPT', 'EMS', 'FC41D'];
         if (!validFirmwareTypes.includes(metadata.firmwareType)) {
             throw new Error(`Invalid firmware type: ${metadata.firmwareType}`);
         }

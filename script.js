@@ -397,25 +397,42 @@ async function getFirmwareInfo(deviceId, deviceType = 'HMG-50', currentVersion =
     }
 }
 
-// Get communication-module firmware information for B2500D/HMJ-2 devices.
+// Query parameters for the FC41D communication-module OTA endpoint.
+// The endpoint (`getCheckWifiOta`) authenticates via the `token` QUERY parameter
+// only — a Bearer/token header or POST body is rejected as "Unauthorized"
+// (confirmed by Hamedata-App API recon). Gating is device-bound: the server
+// only returns a `data.url` for a device that is on the rollout whitelist,
+// otherwise it answers "固件已经最新" (firmware already up to date).
+function buildCommunicationFirmwareParams(deviceId, deviceType) {
+    return {
+        endpoint: '/ems/api/v1/getCheckWifiOta',
+        uid: deviceId,
+        devid: deviceId,
+        device_type: deviceType,
+        lang: 'English',
+        mailbox: currentEmail || '',
+        token: currentToken || '',
+        // read-only probe: `click=false` must never be `true` (would trigger the
+        // real OTA on the target device). `version` value is irrelevant to gating.
+        click: 'false',
+        version: '202001010000'
+    };
+}
+
+// Get communication-module (FC41D WLAN module) firmware information.
+// Works for any Marstek device that carries the FC41D; devices without an
+// assigned update simply report "up to date".
 async function getCommunicationFirmwareInfo(deviceId, deviceType) {
     if (!currentToken) {
         throw new Error('Not authenticated. Please login first.');
     }
 
-    const params = new URLSearchParams({
-        endpoint: '/ems/api/v1/getCheckWifiOta',
-        version: '0',
-        devid: deviceId,
-        device_type: deviceType
-    });
+    const params = new URLSearchParams(buildCommunicationFirmwareParams(deviceId, deviceType));
 
     const response = await fetch(`/.netlify/functions/marstek-proxy?${params.toString()}`, {
         method: 'GET',
         headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${currentToken}`,
-            'token': currentToken
+            'Accept': 'application/json'
         }
     });
 
@@ -426,6 +443,24 @@ async function getCommunicationFirmwareInfo(deviceId, deviceType) {
     const responseText = await response.text();
     console.log('Communication firmware response:', responseText);
     return JSON.parse(responseText);
+}
+
+// Normalize the getCheckWifiOta response into { hasUpdate, version, url }.
+// Response shapes seen in the wild:
+//   update available: {"code":1,"show":0,"msg":"ok","data":{"version":"…","url":"…rbl"}}
+//   up to date:       {"code":0,"show":1,"msg":"固件已经最新"}   (no usable data)
+// Older/other firmwares may return data as an array — handle that defensively.
+function parseCommunicationFirmware(communicationFirmwareData) {
+    const empty = { hasUpdate: false, version: null, url: null };
+    if (!communicationFirmwareData || communicationFirmwareData.error) return empty;
+
+    let data = communicationFirmwareData.data;
+    if (Array.isArray(data)) data = data[0];
+    if (!data || typeof data !== 'object') return empty;
+
+    const url = data.url || null;
+    const version = data.version || null;
+    return { hasUpdate: Boolean(url), version, url };
 }
 
 // Download firmware file
@@ -603,9 +638,10 @@ async function showFirmwareDetails(device) {
             '100',
             device.name
         );
-        const communicationRequest = device.type === 'HMJ-2'
-            ? getCommunicationFirmwareInfo(device.devid, device.type)
-            : Promise.resolve(null);
+        // The FC41D WLAN/communication module is shared across Marstek devices,
+        // so probe it for every device — the endpoint returns "up to date" for
+        // devices without an assigned module update.
+        const communicationRequest = getCommunicationFirmwareInfo(device.devid, device.type);
 
         const [firmwareResult, communicationResult] = await Promise.allSettled([
             firmwareRequest,
@@ -992,52 +1028,63 @@ function displayFirmwareDetails(device, firmwareData, communicationFirmwareData 
     
     html += '</div>';
 
-    if (device.type === 'HMJ-2') {
-        const communicationData = communicationFirmwareData?.data;
-        const hasCommunicationUpdate = Array.isArray(communicationData)
-            ? communicationData.length > 0
-            : Boolean(communicationData && (typeof communicationData !== 'object' || Object.keys(communicationData).length > 0));
+    // Communication module (FC41D WLAN module) — same treatment as the other
+    // firmware types: download + donate-to-archive. Rendered for every device
+    // that returns a module-firmware URL (the endpoint is device-gated, so most
+    // devices simply report "up to date").
+    {
+        const comm = parseCommunicationFirmware(communicationFirmwareData);
 
         html += `
             <div class="firmware-section">
-                <h3>${hasCommunicationUpdate ? 'Communication Firmware Available' : 'Communication Module'}</h3>
+                <h3>📡 ${comm.hasUpdate ? 'Communication Firmware Available' : 'Communication Module (FC41D)'}</h3>
         `;
 
         if (communicationFirmwareData?.error) {
             html += `<p style="color: #f44336; font-weight: 600;">Communication firmware check failed: ${communicationFirmwareData.error}</p>`;
-        } else if (hasCommunicationUpdate) {
-            html += '<p style="color: #FF9800; font-weight: 600;">Marstek servers returned communication-module firmware data.</p>';
+        } else if (comm.hasUpdate) {
+            html += '<p style="color: #FF9800; font-weight: 600;">Marstek servers returned FC41D communication-module firmware for this device!</p>';
 
-            const communicationVersion = communicationData?.version || 'Unknown';
-            const communicationUrl = communicationData?.url;
+            const communicationVersion = comm.version || 'Unknown';
+            const communicationUrl = comm.url;
 
             html += `
                 <div class="firmware-details">
                     <div class="firmware-detail">
-                        <label>Communication Firmware</label>
+                        <label>Communication Firmware (FC41D)</label>
                         <value>Version ${communicationVersion}</value>
                     </div>
                 </div>
             `;
 
-            if (communicationUrl) {
-                let communicationFilename = `communication_${device.devid}_v${communicationVersion}.rbl`;
-                try {
-                    communicationFilename = new URL(communicationUrl).pathname.split('/').pop() || communicationFilename;
-                } catch (error) {
-                    console.warn('Could not derive communication firmware filename:', error);
-                }
-
-                html += `
-                    <div class="download-section">
-                        <button class="btn btn-primary" onclick='downloadFirmware(${JSON.stringify(communicationUrl)}, ${JSON.stringify(communicationFilename)})'>
-                            Download Communication Firmware v${communicationVersion}
-                        </button>
-                    </div>
-                `;
+            let communicationFilename = `FC41D_v${communicationVersion}.rbl`;
+            try {
+                communicationFilename = new URL(communicationUrl).pathname.split('/').pop() || communicationFilename;
+            } catch (error) {
+                console.warn('Could not derive communication firmware filename:', error);
             }
+
+            html += `
+                <div class="download-section">
+                    <button class="btn btn-primary" onclick='downloadFirmware(${JSON.stringify(communicationUrl)}, ${JSON.stringify(communicationFilename)})'>
+                        📥 Download Communication Firmware v${communicationVersion}
+                    </button>
+                </div>
+            `;
+
+            // Archive status + donate button, filled in asynchronously.
+            html += `
+                <div class="firmware-details" style="margin-top: 15px;">
+                    <div class="firmware-detail">
+                        <label>📚 Archive (FC41D v${communicationVersion})</label>
+                        <value id="commArchiveStatus" style="display: flex; align-items: center; gap: 10px;">
+                            <span style="color: #b0b0b0;">Checking archive status...</span>
+                        </value>
+                    </div>
+                </div>
+            `;
         } else {
-            html += '<p style="color: #4CAF50; font-weight: 600;">No communication-module firmware update is available.</p>';
+            html += '<p style="color: #4CAF50; font-weight: 600;">No communication-module firmware update is available for this device.</p>';
         }
 
         html += `
@@ -1048,7 +1095,7 @@ function displayFirmwareDetails(device, firmwareData, communicationFirmwareData 
             </div>
         `;
     }
-    
+
     // Raw API Response (for debugging)
     html += `
         <div class="firmware-section">
@@ -1065,9 +1112,59 @@ function displayFirmwareDetails(device, firmwareData, communicationFirmwareData 
     `;
     
     modalBody.innerHTML = html;
-    
+
     // Check archive status for available firmware versions
     updateArchiveStatus(device, firmwareData);
+    // Check archive status for the FC41D communication-module firmware.
+    updateCommunicationArchiveStatus(device, communicationFirmwareData);
+}
+
+// Fill in the archive status + donate button for the FC41D communication module.
+async function updateCommunicationArchiveStatus(device, communicationFirmwareData) {
+    const statusEl = document.getElementById('commArchiveStatus');
+    if (!statusEl) return;
+
+    const comm = parseCommunicationFirmware(communicationFirmwareData);
+    if (!comm.hasUpdate) return;
+
+    // FC41D is archived as a firmware TYPE under the source device, e.g.
+    // firmwares/VNSD-0/FC41D/<version>/ — same layout as Control/BMS/MPPT.
+    const deviceType = device.type;
+    if (!deviceType) {
+        statusEl.innerHTML = '<span style="color: #b0b0b0;">Unknown device type — cannot archive.</span>';
+        return;
+    }
+
+    const version = String(comm.version);
+    const archiveResult = await checkFirmwareArchive(deviceType, 'FC41D', version);
+
+    if (archiveResult.exists) {
+        statusEl.innerHTML = `
+            <span style="color: #4CAF50;">✅ Archived</span>
+            <a href="${archiveResult.githubUrl}" target="_blank" class="btn" style="font-size: 11px; padding: 4px 8px; margin: 0;">
+                📁 View Archive
+            </a>
+        `;
+        return;
+    }
+
+    const metadata = {
+        deviceType: deviceType,
+        firmwareType: 'FC41D',
+        deviceName: device.name,
+        version: version,
+        url: comm.url,
+        apiResponse: communicationFirmwareData
+    };
+
+    const submitId = `submit_FC41D_${version}`.replace(/\./g, '_');
+    statusEl.innerHTML = `
+        <span style="color: #FF9800;">📥 Not Archived</span>
+        <button id="${submitId}" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px; margin: 0;"
+                onclick="submitToArchive('${submitId}', ${JSON.stringify(metadata).replace(/"/g, '&quot;')}, ${JSON.stringify(device).replace(/"/g, '&quot;')})">
+            🚀 Submit for Archive
+        </button>
+    `;
 }
 
 async function updateArchiveStatus(device, firmwareData) {
@@ -1588,14 +1685,12 @@ async function showFirmwareRawData(deviceId) {
             device.name
         );
         let communicationFirmwareData = null;
-        if (isB2500DDevice) {
-            try {
-                communicationFirmwareData = await getCommunicationFirmwareInfo(device.devid, device.type);
-            } catch (error) {
-                communicationFirmwareData = { error: error.message };
-            }
+        try {
+            communicationFirmwareData = await getCommunicationFirmwareInfo(device.devid, device.type);
+        } catch (error) {
+            communicationFirmwareData = { error: error.message };
         }
-        
+
         // Show raw response with API details
         const rawResponse = {
             device: {
@@ -1616,24 +1711,20 @@ async function showFirmwareRawData(deviceId) {
             response: firmwareData
         };
 
-        if (isB2500DDevice) {
-            const communicationParams = {
-                version: '0',
-                devid: device.devid,
-                device_type: device.type
-            };
-            const communicationUrl = `https://eu.hamedata.com/ems/api/v1/getCheckWifiOta?${new URLSearchParams(communicationParams).toString()}`;
+        {
+            const { endpoint: commEndpoint, ...commQuery } = buildCommunicationFirmwareParams(device.devid, device.type);
+            const communicationUrl = `https://eu.hamedata.com${commEndpoint}?${new URLSearchParams(commQuery).toString()}`;
 
             rawResponse.communicationApiCall = {
-                endpoint: '/ems/api/v1/getCheckWifiOta',
+                endpoint: commEndpoint,
                 fullUrl: communicationUrl,
                 method: 'GET',
-                parameters: communicationParams,
-                authentication: 'Session token forwarded in Authorization and token headers'
+                parameters: commQuery,
+                authentication: 'token as query parameter (getCheckWifiOta rejects Bearer/header auth)'
             };
             rawResponse.communicationResponse = communicationFirmwareData;
         }
-        
+
         // Store original data for reset functionality
         originalApiData = rawResponse;
         
