@@ -16,8 +16,17 @@
 const express = require('express');
 const app     = express();
 
+const path = require('path');
+const DIST = path.join(__dirname, 'dist');
+const BASE = '/marstek/marstek-fw-checker';
+
 app.use(express.json());
-app.use(express.static(__dirname));   // index.html, script.js, styles.css
+// Serve the built React/Vite SPA. In production Apache strips the
+// /marstek/marstek-fw-checker/ prefix (requests arrive at /, /assets/…), but we
+// also mount it under the base path so a direct hit (or a proxy that keeps the
+// prefix) works too — the built asset URLs carry that prefix.
+app.use(express.static(DIST));
+app.use(BASE, express.static(DIST));
 
 // ------------------------------------------------------------------
 // Adapter: Express req/res → Netlify event-Objekt
@@ -73,6 +82,13 @@ app.all('/.netlify/functions/check-firmware-archive', async (req, res) => {
 app.all('/.netlify/functions/submit-firmware-metadata', async (req, res) => {
   const result = await submitFn.handler(toEvent(req), {});
   sendResult(result, res);
+});
+
+// SPA fallback: any other GET returns index.html so the single-page app loads.
+// (Static assets and the function routes above are handled first.)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/.netlify/')) return next();
+  res.sendFile(path.join(DIST, 'index.html'));
 });
 
 // ------------------------------------------------------------------
