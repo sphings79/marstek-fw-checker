@@ -13,7 +13,8 @@ export function Footer() {
         py: 3,
         px: 2,
         textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid',
+        borderColor: 'divider',
         color: 'text.secondary',
       }}
     >

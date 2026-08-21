@@ -11,6 +11,7 @@ import { Login } from './components/Login.tsx'
 import { DeviceCard } from './components/DeviceCard.tsx'
 import { FirmwareDetails } from './components/FirmwareDetails.tsx'
 import { Footer } from './components/Footer.tsx'
+import { ColorModeToggle } from './components/ColorModeToggle.tsx'
 import type { AuthResult, Device } from './lib/api.ts'
 
 interface Session {
@@ -34,12 +35,18 @@ export function App() {
 
   return (
     <Box sx={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column' }}>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'background.paper', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <AppBar
+        position="sticky"
+        elevation={0}
+        color="default"
+        sx={{ bgcolor: 'background.paper', borderBottom: '1px solid', borderColor: 'divider' }}
+      >
         <Toolbar>
           <MemoryIcon color="primary" sx={{ mr: 1.5 }} />
           <Typography variant="h1" sx={{ fontSize: '1.15rem', flexGrow: 1 }}>
             Marstek Firmware Downloader
           </Typography>
+          <ColorModeToggle />
           {session && (
             <Button color="inherit" startIcon={<LogoutIcon />} onClick={logout}>
               Logout

@@ -19,7 +19,7 @@ export function DeviceCard({ device, onOpen }: { device: Device; onOpen: (d: Dev
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            bgcolor: 'rgba(255,255,255,0.03)',
+            bgcolor: 'action.hover',
             p: 1.5,
           }}
         >

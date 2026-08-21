@@ -1,22 +1,31 @@
 import { createTheme } from '@mui/material/styles'
 
-// Modern dark theme, tuned to feel close to the Venus Control tool so the two
-// sibling apps look like one family.
+// Light + dark colour schemes with a runtime toggle. Uses MUI's CSS-variable
+// engine so switching is instant and the choice persists (localStorage).
 export const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: { main: '#4f9dff' },
-    secondary: { main: '#9c6bff' },
-    success: { main: '#4caf50' },
-    warning: { main: '#ff9800' },
-    error: { main: '#f4523b' },
-    background: {
-      default: '#0f1419',
-      paper: '#1a2029',
+  cssVariables: { colorSchemeSelector: 'class' },
+  colorSchemes: {
+    light: {
+      palette: {
+        primary: { main: '#1769d6' },
+        secondary: { main: '#7b3fe4' },
+        success: { main: '#2e7d32' },
+        warning: { main: '#ed6c02' },
+        error: { main: '#d32f2f' },
+        background: { default: '#f3f5f9', paper: '#ffffff' },
+        text: { primary: '#1b2430', secondary: '#5b6672' },
+      },
     },
-    text: {
-      primary: '#e6e9ee',
-      secondary: '#9aa4b2',
+    dark: {
+      palette: {
+        primary: { main: '#4f9dff' },
+        secondary: { main: '#9c6bff' },
+        success: { main: '#4caf50' },
+        warning: { main: '#ff9800' },
+        error: { main: '#f4523b' },
+        background: { default: '#0f1419', paper: '#1a2029' },
+        text: { primary: '#e6e9ee', secondary: '#9aa4b2' },
+      },
     },
   },
   shape: { borderRadius: 12 },
@@ -30,7 +39,10 @@ export const theme = createTheme({
   components: {
     MuiCard: {
       styleOverrides: {
-        root: { backgroundImage: 'none', border: '1px solid rgba(255,255,255,0.06)' },
+        root: ({ theme }) => ({
+          backgroundImage: 'none',
+          border: `1px solid ${theme.palette.divider}`,
+        }),
       },
     },
     MuiButton: { defaultProps: { disableElevation: true } },
