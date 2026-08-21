@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/theme.ts","./src/components/devicecard.tsx","./src/components/downloaddonate.tsx","./src/components/firmwaredetails.tsx","./src/components/footer.tsx","./src/components/login.tsx","./src/components/releasenote.tsx","./src/lib/api.ts","./src/lib/deviceimage.ts","./src/lib/md5.ts","./src/lib/projectlinks.ts"],"version":"5.9.3"}

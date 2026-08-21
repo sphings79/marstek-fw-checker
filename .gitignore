@@ -30,3 +30,6 @@ SETUP_GITHUB.md
 script.js vor ptach/
 # Vite build output
 dist/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
