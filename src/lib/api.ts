@@ -161,6 +161,23 @@ export async function getCommunicationFirmware(
   return proxyGet(communicationParams(device, token, email))
 }
 
+/** Submit a raw diagnostic dump to the maintainer's PRIVATE diagnostics repo. */
+export async function submitDiagnostics(payload: Record<string, unknown>): Promise<{
+  success?: boolean
+  issueNumber?: number
+  issueUrl?: string
+  error?: string
+}> {
+  const res = await fetch('/.netlify/functions/submit-diagnostics', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error || data.message || 'Failed to submit diagnostics')
+  return data
+}
+
 /** Read-only advanced device settings (getAdvance). */
 export async function getAdvancedSettings(device: Device, token: string): Promise<any> {
   return proxyGet({

@@ -65,6 +65,7 @@ function sendResult(result, res) {
 const proxyFn   = require('./netlify/functions/marstek-proxy');
 const archiveFn = require('./netlify/functions/check-firmware-archive');
 const submitFn  = require('./netlify/functions/submit-firmware-metadata');
+const diagFn    = require('./netlify/functions/submit-diagnostics');
 
 // ------------------------------------------------------------------
 // Routen — exakt die Pfade, die script.js aufruft
@@ -81,6 +82,11 @@ app.all('/.netlify/functions/check-firmware-archive', async (req, res) => {
 
 app.all('/.netlify/functions/submit-firmware-metadata', async (req, res) => {
   const result = await submitFn.handler(toEvent(req), {});
+  sendResult(result, res);
+});
+
+app.all('/.netlify/functions/submit-diagnostics', async (req, res) => {
+  const result = await diagFn.handler(toEvent(req), {});
   sendResult(result, res);
 });
 

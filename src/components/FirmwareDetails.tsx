@@ -29,6 +29,7 @@ import { deviceImage } from '../lib/deviceImage.ts'
 import { ReleaseNote } from './ReleaseNote.tsx'
 import { ApiTester } from './ApiTester.tsx'
 import { AdvancedSettings } from './AdvancedSettings.tsx'
+import { DiagnosticsSubmit } from './DiagnosticsSubmit.tsx'
 
 interface FwEntry {
   key: string
@@ -288,6 +289,16 @@ export function FirmwareDetails({
         )}
 
         {!loading && <AdvancedSettings device={device} token={token} />}
+
+        {!loading && !error && (
+          <DiagnosticsSubmit
+            device={device}
+            token={token}
+            email={email}
+            firmwareResponse={raw?.firmware}
+            communicationResponse={raw?.communication}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
