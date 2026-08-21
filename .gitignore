@@ -28,3 +28,5 @@ PATCHES_für_Claude.md
 SETUP.md
 SETUP_GITHUB.md
 script.js vor ptach/
+# Vite build output
+dist/

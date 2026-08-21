@@ -1,38 +1,41 @@
 {
   "name": "marstek-fw-checker",
-  "version": "1.0.0",
-  "description": "Web-based firmware update checker for Marstek devices with GitHub archive integration",
-  "main": "index.html",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Web-based firmware checker & archive tool for Marstek devices",
   "scripts": {
-    "dev": "netlify dev",
-    "build": "echo 'Static site - no build step required'",
-    "test": "echo 'No tests configured'"
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "server": "node marstek-server.js"
   },
-  "keywords": [
-    "marstek",
-    "firmware",
-    "solar",
-    "battery",
-    "archive"
-  ],
-  "author": "Remko Weijnen",
-  "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^20.0.2"
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/icons-material": "7.3.8",
+    "@mui/material": "7.3.8",
+    "@octokit/rest": "^20.0.2",
+    "express": "^4.21.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
-    "netlify-cli": "^17.0.0"
+    "@eslint/js": "9.39.1",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.1",
+    "eslint": "9.39.1",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "eslint-plugin-react-refresh": "0.4.24",
+    "globals": "16.5.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "8.48.0",
+    "vite": "7.3.1"
   },
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/rweijnen/marstek-fw-checker.git"
-  },
-  "netlify": {
-    "functions": {
-      "directory": "netlify/functions"
-    }
+    "node": ">=20.0.0"
   }
 }

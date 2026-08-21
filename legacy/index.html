@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marstek Firmware Query Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Marstek Firmware Query Tool</h1>
+            <p>Check what firmware versions are available from Marstek servers</p>
+            <div class="work-in-progress-banner">
+                <span class="wip-icon">🚧</span>
+                <span class="wip-text">Work in Progress</span>
+                <button class="info-btn" onclick="showWipInfo()" title="Click for more information">ℹ️</button>
+            </div>
+        </header>
+
+        <div class="form-container">
+            <!-- Login Section -->
+            <div id="loginSection" class="login-section">
+                <h2>🔐 Login to Marstek Account</h2>
+                <div class="disclaimer-notice">
+                    <strong>⚠️ Disclaimer:</strong> This is an unofficial, community-developed tool and is not affiliated with, endorsed by, or supported by Marstek. Use at your own risk. Always verify firmware compatibility before installation.
+                </div>
+                <div class="disclaimer-notice" style="margin-top: 15px; background: #2d3748; border-left: 3px solid #FFA500;">
+                    <strong>📱 Note:</strong> When using this tool, you will be logged out from the official Marstek app on your mobile device due to session limitations.
+                </div>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password <span class="required">*</span></label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+
+
+                    <button type="submit" id="loginBtn">Login</button>
+                </form>
+            </div>
+
+            <!-- Devices Section -->
+            <div id="devicesSection" class="devices-section">
+                <h2>📱 Your Devices 
+                    <button class="console-btn inline" onclick="showDevicesRawData()" title="Show raw devices API response">
+                        <span class="console-icon">▢</span>
+                    </button>
+                </h2>
+                <div class="disclaimer-notice" style="margin-bottom: 20px;">
+                    <strong>Remember:</strong> This unofficial tool is provided as-is. Neither Marstek nor the tool author are responsible for any issues arising from its use.
+                </div>
+                <div id="deviceGrid" class="device-grid">
+                    <!-- Devices will be populated here -->
+                </div>
+                <button id="logoutBtn" class="btn btn-secondary" style="margin-top: 20px;">Logout</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Checking Marstek servers...</p>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <h2>Results</h2>
+            <div id="resultContent"></div>
+        </div>
+
+        <div id="error" class="error" style="display: none;">
+            <h2>Error</h2>
+            <div id="errorContent"></div>
+        </div>
+    </div>
+
+    <!-- WIP Info Modal -->
+    <div id="wipModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>🚧 Work in Progress Notice</h2>
+                <span class="modal-close" onclick="closeWipModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="firmware-section">
+                    <h3>⚠️ Current Development Status</h3>
+                    <p>We are actively working on improving support for newer Marstek devices, particularly:</p>
+                    <ul style="color: #e0e0e0; margin: 15px 0;">
+                        <li><strong>Venus E V3 (VNSE3-0)</strong> - Enhanced firmware detection</li>
+                        <li><strong>CT002/CT003</strong> - Now using dedicated AC Couple OTA endpoint</li>
+                        <li><strong>API Parameters</strong> - Optimizing version detection for all models</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 20px;">🔄 What This Means</h3>
+                    <p>During this transition period, you may experience:</p>
+                    <ul style="color: #e0e0e0; margin: 15px 0;">
+                        <li>Inconsistent firmware detection for newer models</li>
+                        <li>Some devices showing "No updates" when updates exist</li>
+                        <li>Changes in how firmware versions are reported</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 20px;">✅ What's Working</h3>
+                    <p>The following features remain fully functional:</p>
+                    <ul style="color: #e0e0e0; margin: 15px 0;">
+                        <li>Device authentication and listing</li>
+                        <li>Venus E V1/V2 (HMG-50) firmware checks</li>
+                        <li>Firmware download functionality</li>
+                    </ul>
+                    
+                    <p style="margin-top: 20px; padding: 15px; background: #404040; border-radius: 6px; border-left: 3px solid #FF9800;">
+                        <strong>Note:</strong> We're using firmware version "100" as a baseline to detect all available updates. 
+                        This may show more updates than actually needed for your device. Please verify compatibility before installing.
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeWipModal()">Got it!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Console Data Modal -->
+    <div id="consoleModal" class="modal console-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="consoleModalTitle">Raw API Data</h2>
+                <span class="modal-close" onclick="closeConsoleModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="firmware-section" id="apiTestSection" style="display: none;">
+                    <h3>🔧 API Tester</h3>
+                    <div class="api-tester">
+                        <div style="margin-bottom: 15px;">
+                            <label for="apiUrl" style="display: block; margin-bottom: 5px; color: #e0e0e0; font-weight: 600;">API URL:</label>
+                            <input type="text" id="apiUrl" style="width: 100%; padding: 8px; background: #2d2d2d; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 12px;" placeholder="Enter API URL">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <button class="btn btn-primary" onclick="testCustomUrl()">🚀 Test API Call</button>
+                            <button class="btn btn-secondary" onclick="resetToOriginal()">↺ Reset to Original</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="firmware-section">
+                    <h3>📡 Raw API Response</h3>
+                    <div class="console-output">
+                        <pre id="consoleContent" style="background: #1a1a1a; color: #00ff41; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; overflow-x: auto; white-space: pre-wrap; border: 1px solid #333; max-height: 500px; overflow-y: auto;">
+Loading...
+                        </pre>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="copyConsoleContent()">📋 Copy to Clipboard</button>
+                <button class="btn btn-primary" onclick="closeConsoleModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firmware Details Modal -->
+    <div id="firmwareModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalDeviceName">Device Firmware</h2>
+                <span class="modal-close">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Firmware details will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button id="closeModalBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Advanced Settings Modal -->
+    <div id="advancedModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="advancedModalTitle">Advanced Settings</h2>
+                <button class="console-btn" onclick="showAdvancedConsoleData()" title="Show raw API data" style="position: absolute; right: 60px; top: 20px;">
+                    <span class="console-icon">▢</span>
+                </button>
+                <span class="modal-close" onclick="closeAdvancedModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="advancedModalBody">
+                <!-- Advanced settings will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="copyAdvancedSettings()">📋 Copy Settings</button>
+                <button class="btn btn-primary" onclick="closeAdvancedModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>This tool queries Marstek servers to see what firmware versions are currently available.</p>
+        <p><strong>Note:</strong> This tool shows available firmware, not whether your device needs updating. Compare versions manually.</p>
+        
+        <div class="author-info">
+            <p>
+                <strong>Maintained by:</strong> <a href="https://github.com/sphings79" target="_blank">sphings79</a> |
+                <strong>Source Code:</strong> <a href="https://github.com/sphings79/marstek-fw-checker" target="_blank">github.com/sphings79/marstek-fw-checker</a> |
+                <strong>Firmware archive:</strong> <a href="https://github.com/sphings79/marstek-firmware-archiv" target="_blank">github.com/sphings79/marstek-firmware-archiv</a>
+            </p>
+            <p><small>Fork of the original tool by Remko Weijnen · Original repo: github.com/rweijnen/marstek-fw-checker</small></p>
+        </div>
+        
+        <div class="version-info" id="versionInfo">
+            <p><small>Loading version info...</small></p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
