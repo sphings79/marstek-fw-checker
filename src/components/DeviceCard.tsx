@@ -19,18 +19,23 @@ export function DeviceCard({
   token,
   email,
   onOpen,
+  demoSummary,
 }: {
   device: Device
   token: string
   email: string
   onOpen: (d: Device) => void
+  demoSummary?: UpdateSummary // screenshot/demo mode: force the badge, skip fetch
 }) {
   const img = deviceImage(device)
-  const [check, setCheck] = useState<Check>({ kind: 'checking' })
+  const [check, setCheck] = useState<Check>(
+    demoSummary ? { kind: 'done', summary: demoSummary } : { kind: 'checking' },
+  )
 
   // Non-blocking per-card firmware check: the card renders immediately and the
   // update badge fills in when the check returns, so the overview isn't delayed.
   useEffect(() => {
+    if (demoSummary) return
     let alive = true
     setCheck({ kind: 'checking' })
     getFirmwareInfo(device, token, email)
@@ -39,7 +44,7 @@ export function DeviceCard({
     return () => {
       alive = false
     }
-  }, [device, token, email])
+  }, [device, token, email, demoSummary])
 
   return (
     <Card sx={{ height: '100%' }}>

@@ -14,6 +14,7 @@ import { FirmwareDetails } from './components/FirmwareDetails.tsx'
 import { Footer } from './components/Footer.tsx'
 import { ColorModeToggle } from './components/ColorModeToggle.tsx'
 import type { AuthResult, Device } from './lib/api.ts'
+import { Demo } from './Demo.tsx'
 
 interface Session {
   token: string
@@ -24,6 +25,7 @@ interface Session {
 export function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [selected, setSelected] = useState<Device | null>(null)
+  if (typeof location !== 'undefined' && location.search.includes('demo')) return <Demo />
 
   function onLogin(result: AuthResult, email: string) {
     setSession({ token: result.token, email, devices: result.devices })

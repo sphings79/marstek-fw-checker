@@ -1,7 +1,9 @@
 import Box from '@mui/material/Box'
+import Button from '@mui/material/Button'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import StarIcon from '@mui/icons-material/StarBorder'
 import { REPO, PROJECT_LINKS } from '../lib/projectLinks.ts'
 
 export function Footer() {
@@ -18,6 +20,19 @@ export function Footer() {
         color: 'text.secondary',
       }}
     >
+      <Button
+        variant="outlined"
+        size="small"
+        color="inherit"
+        startIcon={<StarIcon />}
+        href={REPO}
+        target="_blank"
+        rel="noopener"
+        sx={{ mb: 2 }}
+      >
+        Star on GitHub
+      </Button>
+
       <Stack direction="row" spacing={2} justifyContent="center" flexWrap="wrap" useFlexGap>
         {PROJECT_LINKS.map((l) => (
           <Link key={l.href} href={l.href} target="_blank" rel="noopener" underline="hover" color="inherit">

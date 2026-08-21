@@ -143,11 +143,13 @@ export function FirmwareDetails({
   token,
   email,
   onClose,
+  demoResponses,
 }: {
   device: Device
   token: string
   email: string
   onClose: () => void
+  demoResponses?: { firmware: any; communication: any } // screenshot/demo mode
 }) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
@@ -157,6 +159,12 @@ export function FirmwareDetails({
   const [raw, setRaw] = useState<{ firmware: any; communication: any } | null>(null)
 
   useEffect(() => {
+    if (demoResponses) {
+      setEntries(buildEntries(device, demoResponses.firmware, demoResponses.communication))
+      setRaw(demoResponses)
+      setLoading(false)
+      return
+    }
     let alive = true
     setLoading(true)
     setError(null)

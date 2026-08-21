@@ -21,7 +21,7 @@ node_modules/
 *.log
 
 # Screenshots folder
-screenshots/
+/screenshots/
 
 # Local notes & backups (nicht auf GitHub)
 PATCHES_für_Claude.md
