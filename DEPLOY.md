@@ -64,11 +64,17 @@ only" are inactive (download and version checking keep working).
 1. GitHub → your avatar → **Settings** → **Developer settings** →
    **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
 2. **Resource owner:** `sphings79`.
-3. **Repository access:** *Only select repositories* → `marstek-firmware-archiv`.
+3. **Repository access:** *Only select repositories* → **`marstek-firmware-archiv`**
+   **and `marstek-fw-diagnostics`** (the private repo the "Submit RAW data"
+   diagnostics button posts to).
 4. **Permissions:**
-   - **Issues** → **Read and write** (to create submission issues)
+   - **Issues** → **Read and write** (create submission + diagnostics issues)
    - **Contents** → **Read-only** (to check what's already archived)
    - *(Metadata → Read-only is added automatically.)*
+
+> If you created the token earlier for only `marstek-firmware-archiv`, just
+> **edit** it and add `marstek-fw-diagnostics` to the repository access — the
+> token value stays the same, so nothing changes on the server.
 5. Generate and **copy the token now** (shown only once). It looks like
    `github_pat_...` (fine-grained) or `ghp_...` (classic).
 
