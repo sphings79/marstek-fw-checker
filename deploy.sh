@@ -4,6 +4,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Running via sudo (root) on a repo owned by the service user (sphings-dev) trips
+# git's "dubious ownership" guard — whitelist this directory once (idempotent).
+git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$PWD" \
+  || git config --global --add safe.directory "$PWD"
+
 echo "==> git pull"
 git pull --ff-only
 
