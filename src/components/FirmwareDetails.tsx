@@ -21,6 +21,7 @@ import {
   getFirmwareInfo,
   getCommunicationFirmware,
   parseCommunicationFirmware,
+  maskValue,
   type Device,
 } from '../lib/api.ts'
 import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
@@ -69,7 +70,7 @@ function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
         archiveType: '',
         version,
         device,
-        metadata: { deviceName: device.name, url: data, apiResponse: fw },
+        metadata: { deviceName: maskValue(device.name || ""), url: data, apiResponse: fw },
       },
     })
   }
@@ -128,7 +129,7 @@ function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
         submitType: 'FC41D',
         version,
         device,
-        metadata: { firmwareType: 'FC41D', deviceName: device.name, url: c.url, apiResponse: comm },
+        metadata: { firmwareType: 'FC41D', deviceName: maskValue(device.name || ""), url: c.url, apiResponse: comm },
       },
     })
   }

@@ -290,15 +290,23 @@ export async function translateText(text: string, from = 'zh', to = 'en'): Promi
   throw new Error('Translation service unavailable')
 }
 
-/** Mask sensitive device identifiers before archive submission. */
+/**
+ * Mask a value keeping only the first 2 and last 2 characters
+ * ("Haus Mahlsdorf L3 - Alt" -> "Ha*******************lt"). Values of 4 chars or
+ * fewer are left as-is. Used for device identifiers AND the device name (users
+ * sometimes put their real name / address in the device name).
+ */
+export function maskValue(v: unknown): string {
+  const s = String(v ?? '')
+  return s.length > 4 ? s.slice(0, 2) + '*'.repeat(s.length - 4) + s.slice(-2) : s
+}
+
+/** Mask sensitive device fields (id, serial, MAC, and the user-chosen name). */
 export function obfuscateDeviceInfo(info: Device): Record<string, unknown> {
-  const mask = (v: unknown) => {
-    const s = String(v ?? '')
-    return s.length > 4 ? s.slice(0, 2) + '*'.repeat(s.length - 4) + s.slice(-2) : s
-  }
   const out: Record<string, unknown> = { ...info }
-  if (info.devid) out.devid = mask(info.devid)
-  if (info.sn) out.sn = mask(info.sn)
-  if (info.mac) out.mac = mask(info.mac)
+  if (info.devid) out.devid = maskValue(info.devid)
+  if (info.sn) out.sn = maskValue(info.sn)
+  if (info.mac) out.mac = maskValue(info.mac)
+  if (info.name) out.name = maskValue(info.name)
   return out
 }

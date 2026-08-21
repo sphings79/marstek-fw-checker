@@ -122,6 +122,19 @@ exports.handler = async (event, context) => {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing metadata in request' }) };
         }
 
+        // Anonymize the device name server-side as a safety net: users sometimes
+        // put their real name / address in the device name, and older clients
+        // don't mask it. Keep only the first 2 and last 2 characters.
+        const maskName = (v) => {
+            const s = String(v == null ? '' : v);
+            return s.length > 4 ? s.slice(0, 2) + '*'.repeat(s.length - 4) + s.slice(-2) : s;
+        };
+        if (metadata.deviceName) metadata.deviceName = maskName(metadata.deviceName);
+        if (deviceInfo && typeof deviceInfo === 'object') {
+            if (deviceInfo.name) deviceInfo.name = maskName(deviceInfo.name);
+            if (deviceInfo.deviceName) deviceInfo.deviceName = maskName(deviceInfo.deviceName);
+        }
+
         try {
             validateMetadata(metadata);
         } catch (error) {
