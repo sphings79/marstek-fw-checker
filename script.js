@@ -1046,7 +1046,11 @@ function displayFirmwareDetails(device, firmwareData, communicationFirmwareData 
 
         html += `
             <div class="firmware-section">
-                <h3>📡 ${comm.hasUpdate ? 'Communication Firmware Available' : 'Communication Module (FC41D)'}</h3>
+                <h3>📡 ${comm.hasUpdate ? 'Communication Firmware Available' : 'Communication Module (FC41D)'}
+                    <button class="console-btn inline" onclick="showCommunicationRawData('${device.devid}')" title="Show raw communication (FC41D) API response">
+                        <span class="console-icon">▢</span>
+                    </button>
+                </h3>
         `;
 
         if (communicationFirmwareData?.error) {
@@ -1747,6 +1751,65 @@ async function showFirmwareRawData(deviceId) {
         content.textContent = JSON.stringify(rawResponse, null, 2);
     } catch (error) {
         content.textContent = `Error fetching firmware data:\n${error.message}`;
+    }
+}
+
+// Raw API response for the FC41D communication module (getCheckWifiOta).
+// Mirrors showFirmwareRawData but focused on the wifiota endpoint, so the API
+// tester is pre-filled with the getCheckWifiOta URL.
+async function showCommunicationRawData(deviceId) {
+    const devices = JSON.parse(sessionStorage.getItem('deviceList') || '[]');
+    const device = devices.find(d => d.devid === deviceId);
+
+    if (!device) return;
+
+    const modal = document.getElementById('consoleModal');
+    const title = document.getElementById('consoleModalTitle');
+    const content = document.getElementById('consoleContent');
+
+    title.textContent = `Raw Communication (FC41D) API Response - ${device.name || deviceId}`;
+    content.textContent = 'Loading communication firmware data...';
+    modal.style.display = 'block';
+
+    try {
+        let communicationFirmwareData;
+        try {
+            communicationFirmwareData = await getCommunicationFirmwareInfo(device.devid, device.type);
+        } catch (error) {
+            communicationFirmwareData = { error: error.message };
+        }
+
+        const { endpoint: commEndpoint, ...commQuery } = buildCommunicationFirmwareParams(device.devid, device.type);
+        const communicationUrl = `https://eu.hamedata.com${commEndpoint}?${new URLSearchParams(commQuery).toString()}`;
+
+        const rawResponse = {
+            device: {
+                id: device.devid,
+                name: device.name,
+                type: device.type
+            },
+            apiCall: {
+                endpoint: commEndpoint,
+                fullUrl: communicationUrl,
+                method: 'GET',
+                parameters: commQuery,
+                authentication: 'token as query parameter (getCheckWifiOta rejects Bearer/header auth)'
+            },
+            timestamp: new Date().toISOString(),
+            response: communicationFirmwareData
+        };
+
+        // Store for reset + populate the API tester with the wifiota URL.
+        originalApiData = rawResponse;
+
+        const apiTestSection = document.getElementById('apiTestSection');
+        const apiUrlField = document.getElementById('apiUrl');
+        apiTestSection.style.display = 'block';
+        apiUrlField.value = communicationUrl;
+
+        content.textContent = JSON.stringify(rawResponse, null, 2);
+    } catch (error) {
+        content.textContent = `Error fetching communication firmware data:\n${error.message}`;
     }
 }
 
