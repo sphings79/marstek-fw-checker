@@ -62,6 +62,41 @@ and optionally donate them to a community firmware archive.
 
 ---
 
+## Supported devices
+
+| Device | Type code |
+|--------|-----------|
+| Marstek Venus D | `VNSD-0` |
+| Marstek Venus A | `VNSA-0` |
+| Marstek Venus E 3.0 (V3) | `VNSE3-0` |
+| Marstek Venus E (V1 / V2) | `HMG-50` |
+| Marstek Venus C | `HMG-25` |
+| Marstek B2500-D | `HMJ-2` |
+| Marstek smart meter / CT (e.g. CT002, P1) | `HME-3`, `HME-4` |
+| FC41D Wi-Fi / communication module | firmware type on Venus / B2500 |
+
+Development and testing focus on the **Venus D (VNSD-0)**. Other models use the same
+Marstek cloud API and are supported on a best-effort basis — if your device isn't
+listed but appears in your Marstek account, it will very likely still work.
+
+---
+
+## Installing a firmware version
+
+This tool **downloads and archives** firmware — it does **not** flash it onto the
+device. To actually install a specific version manually, use **Venus Control**, the
+sibling tool that performs firmware updates over **Bluetooth** (Control/EMS, BMS,
+MPPT and Micro-Inverter modules):
+
+**➡️ <https://sphings-dev.de/marstek/control/>** &nbsp;·&nbsp; source:
+[github.com/sphings79/venuscontrol](https://github.com/sphings79/venuscontrol)
+
+You can of course also let the **official Marstek app** apply the update — but once
+you do, the download link disappears, so **download / donate the firmware here
+first**.
+
+---
+
 ## The firmware archive
 
 Donated firmware is preserved in a companion repository so versions stay available
