@@ -161,6 +161,17 @@ export async function getCommunicationFirmware(
   return proxyGet(communicationParams(device, token, email))
 }
 
+/** Read-only advanced device settings (getAdvance). */
+export async function getAdvancedSettings(device: Device, token: string): Promise<any> {
+  return proxyGet({
+    endpoint: '/ems/api/v1/getAdvance',
+    token,
+    devid: device.devid,
+    type: device.type || 'HMG-50',
+    app_name: 'marstek',
+  })
+}
+
 /** Build the full hamedata URL from a params record (endpoint + query). */
 export function hamedataUrl(params: Record<string, string>): string {
   const { endpoint, ...rest } = params
