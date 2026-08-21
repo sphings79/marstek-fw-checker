@@ -1,20 +1,28 @@
 # Marstek Firmware Downloader
 
-A modern, mobile-friendly web tool to **check, download and archive firmware** for
-Marstek Venus / B2500 devices. Log in with your Marstek app account, see which
-firmware updates are available, download them **before** you install the update,
-and optionally donate them to a community firmware archive.
+**Download, back up and archive firmware for Marstek energy storage devices** —
+Marstek Venus D, Venus E, Venus C, Venus A and B2500. A free, modern, mobile-friendly
+web tool: log in with your Marstek account, see which **OTA firmware updates** are
+available, **download the firmware before you install the update**, and help preserve
+every version in a community firmware archive.
+
+Made because Marstek firmware downloads disappear the moment an update is installed —
+this tool lets the community **check, download and back up Marstek firmware** while
+it's still available.
 
 > **Unofficial community tool** — not affiliated with, endorsed by, or supported by
 > Marstek. Use at your own risk.
 
-**Hosted:** <https://sphings-dev.de/marstek/marstek-fw-checker/>
+**▶️ Use it now (no install):** <https://sphings-dev.de/marstek/marstek-fw-checker/>
 
 <p align="center">
   <a href="https://github.com/sphings79/marstek-fw-checker">
-    <img alt="Star on GitHub" src="https://img.shields.io/github/stars/sphings79/marstek-fw-checker?style=social">
+    <img alt="Star this project on GitHub" src="https://img.shields.io/github/stars/sphings79/marstek-fw-checker?style=social">
   </a>
 </p>
+
+> ⭐ **Found this useful? A star on GitHub is hugely appreciated** — it helps other
+> Marstek owners discover the tool and keeps the firmware archive growing.
 
 ---
 
@@ -184,3 +192,10 @@ updating (`./deploy.sh`), and rollback.
   cloud-free Bluetooth control panel for Marstek Venus.
 
 MIT License.
+
+---
+
+<sub><strong>Keywords:</strong> Marstek firmware download · Marstek firmware backup ·
+Marstek Venus D firmware · Marstek Venus E firmware · Marstek Venus C / Venus A firmware ·
+Marstek B2500 firmware · Marstek OTA update · FC41D firmware · Marstek firmware archive ·
+download Marstek firmware before update.</sub>
