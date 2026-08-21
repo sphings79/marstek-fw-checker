@@ -10,6 +10,9 @@ git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$PWD" \
   || git config --global --add safe.directory "$PWD"
 
 echo "==> git pull"
+# npm install can rewrite package-lock.json locally (differing npm versions),
+# which then blocks the pull. Discard that regenerated-file churn first.
+git checkout -- package-lock.json 2>/dev/null || true
 git pull --ff-only
 
 echo "==> npm install"

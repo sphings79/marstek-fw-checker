@@ -52,54 +52,92 @@ node -v   # must be >= 20.19
 
 ---
 
-## 3. GitHub token (for the archive-donation feature)
+## 3. GitHub token (for the archive-donation + diagnostics features)
 
-The backend creates a GitHub issue in `sphings79/marstek-firmware-archiv` when a
-user donates firmware, and reads that repo to show archive status. This needs a
-token. **Without it the tool still works** — only "Download & donate" / "Donate
-only" are inactive (download and version checking keep working).
+The backend uses one token (env var `GITHUB_TOKEN`) for two things:
 
-### Create the token
+- **Archive donation** — creates an issue in the public repo
+  `sphings79/marstek-firmware-archiv` and reads it to show archive status.
+- **"Submit RAW data" diagnostics** — creates an issue in the **private** repo
+  `sphings79/marstek-fw-diagnostics`.
+
+**Without the token the tool still works** — only the donate/diagnostics buttons
+are inactive (login, version checking and downloads keep working).
+
+### Which token + which rights
+
+Create a **fine-grained** personal access token:
 
 1. GitHub → your avatar → **Settings** → **Developer settings** →
    **Personal access tokens** → **Fine-grained tokens** → **Generate new token**.
-2. **Resource owner:** `sphings79`.
-3. **Repository access:** *Only select repositories* → **`marstek-firmware-archiv`**
-   **and `marstek-fw-diagnostics`** (the private repo the "Submit RAW data"
-   diagnostics button posts to).
-4. **Permissions:**
-   - **Issues** → **Read and write** (create submission + diagnostics issues)
-   - **Contents** → **Read-only** (to check what's already archived)
+2. **Token name:** e.g. `marstek-fw-checker-server`.
+3. **Resource owner:** `sphings79`.
+4. **Expiration:** **No expiration** is fine for a set-and-forget server token
+   (otherwise the features break when it lapses). If it ever leaks, revoke it
+   manually.
+5. **Repository access:** *Only select repositories* → select **both**:
+   - `marstek-firmware-archiv` (public archive)
+   - `marstek-fw-diagnostics` (private diagnostics)
+6. **Permissions** (apply to both repos):
+   - **Issues** → **Read and write**
+   - **Contents** → **Read-only**
    - *(Metadata → Read-only is added automatically.)*
+7. **Generate token** and **copy it now** (shown only once) — `github_pat_…`.
 
-> If you created the token earlier for only `marstek-firmware-archiv`, just
-> **edit** it and add `marstek-fw-diagnostics` to the repository access — the
-> token value stays the same, so nothing changes on the server.
-5. Generate and **copy the token now** (shown only once). It looks like
-   `github_pat_...` (fine-grained) or `ghp_...` (classic).
+> A classic token with the `repo` scope also works and never expires, but grants
+> access to all your repos; the fine-grained token above is least-privilege.
 
-> A classic token with the `repo` scope also works, but the fine-grained token
-> above is the least-privilege option.
+### Where to set it (first time)
 
-### Where to set it
+The systemd service reads `GITHUB_TOKEN` from the environment. **Pick one:**
 
-The token is read from the environment variable `GITHUB_TOKEN` by the systemd
-service. Two options — **pick one**:
-
-**Option A — separate env file (recommended, keeps the secret out of the unit):**
+**Option A — separate env file (recommended):**
 
 ```bash
 echo 'GITHUB_TOKEN=PASTE_YOUR_TOKEN_HERE' | sudo tee /etc/marstek-fw-checker.env >/dev/null && sudo chmod 600 /etc/marstek-fw-checker.env
 ```
 
-Then reference it in the unit with `EnvironmentFile=/etc/marstek-fw-checker.env`
+Reference it in the unit with `EnvironmentFile=/etc/marstek-fw-checker.env`
 (see the unit file in §4).
 
 **Option B — inline in the unit file:** add a line
 `Environment=GITHUB_TOKEN=PASTE_YOUR_TOKEN_HERE` to the `[Service]` section.
 
-> The token is **never** committed to git and never sent to the browser — it
+> The token is **never** committed to git and never reaches the browser — it
 > lives only on the server.
+
+### Updating / rotating the token
+
+If you create a **new** token (e.g. switching from a classic to a fine-grained
+one, or after a leak), replace the value where it's currently set. First find
+where that is:
+
+```bash
+grep -n GITHUB_TOKEN /etc/systemd/system/marstek-fw-checker.service; sudo systemctl show marstek-fw-checker -p EnvironmentFiles
+```
+
+- **Inline in the unit** (a `Environment=GITHUB_TOKEN=…` line was printed):
+  ```bash
+  sudo nano /etc/systemd/system/marstek-fw-checker.service   # replace the value
+  sudo systemctl daemon-reload && sudo systemctl restart marstek-fw-checker
+  ```
+- **From an env file** (`EnvironmentFiles=…/marstek-fw-checker.env` was printed):
+  ```bash
+  sudo nano /etc/marstek-fw-checker.env                      # replace the value
+  sudo systemctl restart marstek-fw-checker
+  ```
+
+Verify:
+
+```bash
+journalctl -u marstek-fw-checker -n 15 --no-pager | grep GITHUB_TOKEN
+```
+
+Expected: `GITHUB_TOKEN: ✅ gesetzt`.
+
+> If you keep the **same** fine-grained token and only add the diagnostics repo
+> to its repository access, the token value doesn't change — nothing to update
+> on the server, just make sure the service has been restarted since.
 
 ---
 
