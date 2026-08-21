@@ -39,12 +39,14 @@ export function Login({ onSuccess }: { onSuccess: (r: AuthResult, email: string)
           <Typography variant="h2">Login to Marstek Account</Typography>
         </Stack>
 
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Unofficial community tool, not affiliated with Marstek. Your credentials are only used for the
-          query and are never stored.
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Log in with your <strong>Marstek app account</strong> — the same email and password you use in the
+          Marstek app. The details you enter are used <strong>only for this query</strong> and are{' '}
+          <strong>never stored</strong>.
         </Alert>
-        <Alert severity="info" sx={{ mb: 2.5 }}>
-          Using this tool logs you out of the official Marstek app on your phone (single-session limit).
+        <Alert severity="warning" sx={{ mb: 2.5 }}>
+          Unofficial community tool, not affiliated with Marstek. Using it logs you out of the official
+          Marstek app on your phone (single-session limit).
         </Alert>
 
         <Box component="form" onSubmit={submit}>
@@ -57,6 +59,7 @@ export function Login({ onSuccess }: { onSuccess: (r: AuthResult, email: string)
               required
               fullWidth
               autoComplete="username"
+              helperText="The email you use for the Marstek app"
             />
             <TextField
               label="Password"
@@ -66,6 +69,7 @@ export function Login({ onSuccess }: { onSuccess: (r: AuthResult, email: string)
               required
               fullWidth
               autoComplete="current-password"
+              helperText="Your Marstek app password"
             />
             {error && <Alert severity="error">{error}</Alert>}
             <Button
