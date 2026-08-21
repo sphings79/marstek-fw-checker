@@ -133,6 +133,40 @@ export async function getFirmwareInfo(device: Device, token: string, email: stri
   return proxyGet(firmwareParams(device, token, email))
 }
 
+export interface UpdateSummary {
+  hasUpdate: boolean
+  modules: { label: string; version: string }[]
+}
+
+/**
+ * Summarize which modules have a firmware update available (and their new
+ * versions) from a checkSmallBalconyOTA / checkAcCoupleOta response. Only
+ * modules the server actually offers an update for are listed (that's all the
+ * API returns — the unchanged modules come back empty).
+ */
+export function firmwareUpdateSummary(fw: any): UpdateSummary {
+  const modules: { label: string; version: string }[] = []
+  // CT devices: single firmware with a flat `newVerion`.
+  if (fw?.newVerion && typeof fw.data === 'string') {
+    return { hasUpdate: true, modules: [{ label: 'Firmware', version: String(fw.newVerion) }] }
+  }
+  const data = fw?.data
+  const map: [string, string][] = [
+    ['control', 'Control'],
+    ['bms', 'BMS'],
+    ['mppt', 'MPPT'],
+    ['micro', 'Micro'],
+    ['dcdc', 'DCDC'],
+    ['led', 'LED'],
+    ['charger', 'Charger'],
+  ]
+  for (const [slot, label] of map) {
+    const s = data?.[slot]
+    if (s && typeof s === 'object' && s.version) modules.push({ label, version: String(s.version) })
+  }
+  return { hasUpdate: modules.length > 0, modules }
+}
+
 /** Query params for the FC41D communication-module OTA endpoint (getCheckWifiOta). */
 export function communicationParams(
   device: Device,

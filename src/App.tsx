@@ -83,7 +83,7 @@ export function App() {
                 }}
               >
                 {session.devices.map((d) => (
-                  <DeviceCard key={d.devid} device={d} onOpen={setSelected} />
+                  <DeviceCard key={d.devid} device={d} token={session.token} email={session.email} onOpen={setSelected} />
                 ))}
               </Box>
             )}
