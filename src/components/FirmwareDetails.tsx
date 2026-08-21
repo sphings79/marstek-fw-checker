@@ -214,6 +214,13 @@ export function FirmwareDetails({
           <Alert severity="success">No firmware updates available from Marstek servers for this device.</Alert>
         )}
 
+        {!loading && !error && entries.length > 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Download this firmware <strong>before installing the update</strong>. Once you start the update
+            on the device, Marstek stops serving the download link.
+          </Alert>
+        )}
+
         {!loading &&
           entries.map((e) => (
             <Box key={e.key} sx={{ mb: 2.5 }}>

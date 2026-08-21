@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Alert from '@mui/material/Alert'
 import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -63,6 +64,10 @@ export function App() {
             <Typography variant="h2" sx={{ mb: 2 }}>
               Your Devices
             </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Download and donate firmware <strong>before you install the update</strong>. Once the update is
+              triggered on the device, Marstek stops serving the download link.
+            </Alert>
             {session.devices.length === 0 ? (
               <Typography color="text.secondary">No devices found on this account.</Typography>
             ) : (
