@@ -92,7 +92,7 @@ app.all('/.netlify/functions/submit-diagnostics', async (req, res) => {
 
 // SPA fallback: any other GET returns index.html so the single-page app loads.
 // (Static assets and the function routes above are handled first.)
-app.get('*', (req, res, next) => {
+app.get('/{*splat}', (req, res, next) => {
   if (req.path.startsWith('/.netlify/')) return next();
   res.sendFile(path.join(DIST, 'index.html'));
 });
