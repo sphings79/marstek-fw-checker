@@ -52,10 +52,25 @@ function sendResult(result, res) {
   if (result.headers) {
     Object.entries(result.headers).forEach(([k, v]) => res.set(k, v));
   }
+  // The functions mostly set no Content-Type, and Express would send their
+  // string bodies as text/html. JSON goes out as JSON, anything else as text.
+  if (!res.get('Content-Type') && !result.isBase64Encoded) {
+    res.type(looksLikeJson(result.body) ? 'application/json' : 'text/plain');
+  }
   if (result.isBase64Encoded) {
     res.send(Buffer.from(result.body, 'base64'));
   } else {
     res.send(result.body || '');
+  }
+}
+
+function looksLikeJson(body) {
+  if (!body) return false;
+  try {
+    JSON.parse(body);
+    return true;
+  } catch {
+    return false;
   }
 }
 
