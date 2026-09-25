@@ -77,14 +77,14 @@ function validateMetadata(metadata) {
         throw new Error('Invalid firmware source - expected a known Marstek firmware host');
     }
 
-    if (!/^[\d\.]+$/.test(metadata.version) && metadata.version !== '100') {
+    if (!/^[\d.]+$/.test(metadata.version) && metadata.version !== '100') {
         throw new Error(`Invalid version format: ${metadata.version}`);
     }
 
     return true;
 }
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -113,7 +113,7 @@ exports.handler = async (event, context) => {
         let requestData;
         try {
             requestData = JSON.parse(event.body);
-        } catch (error) {
+        } catch {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON in request body' }) };
         }
 
@@ -182,7 +182,7 @@ exports.handler = async (event, context) => {
                     })
                 };
             }
-        } catch (searchError) {
+        } catch {
             // Continue with submission if search fails
         }
 
@@ -234,7 +234,7 @@ ${submissionNotes || 'None provided'}
                         metadata: metadata
                     }
                 });
-            } catch (dispatchError) {
+            } catch {
                 // Repository dispatch failed (non-critical)
             }
 

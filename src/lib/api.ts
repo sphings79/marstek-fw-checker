@@ -27,8 +27,19 @@ export interface AuthResult {
   rawAuthResponse: string
 }
 
+/**
+ * The Marstek API is undocumented, so its responses are `unknown` and taken
+ * apart field by field. This is the object view of one: a plain object, or
+ * undefined for anything else (text, arrays, null).
+ */
+export function asObject(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
+}
+
 /** Build the proxied hamedata URL and return the parsed JSON (falls back to text). */
-async function proxyGet(params: Record<string, string>): Promise<any> {
+async function proxyGet(params: Record<string, string>): Promise<unknown> {
   const url = `${PROXY}?${new URLSearchParams(params).toString()}`
   const res = await fetch(url, { headers: { Accept: 'application/json' } })
   if (!res.ok) throw new Error(`Request failed: ${res.status} ${res.statusText}`)
@@ -49,12 +60,13 @@ export async function authenticate(email: string, password: string): Promise<Aut
     mailbox: email,
   })
 
+  const auth = asObject(authData)
   const rawAuthResponse = typeof authData === 'string' ? authData : JSON.stringify(authData, null, 2)
   const token: string =
-    (authData && authData.token) || (typeof authData === 'string' ? authData.trim() : '')
+    (auth?.token as string | undefined) || (typeof authData === 'string' ? authData.trim() : '')
   if (!token) throw new Error('No authentication token received. Check email and password.')
 
-  const basic: Device[] = (authData && authData.data) || []
+  const basic: Device[] = (auth?.data as Device[] | undefined) || []
   const detailed = await getDeviceList(token, email)
   const devices = basic.map((d) => {
     const extra = detailed.find((x) => x.devid === d.devid)
@@ -71,7 +83,8 @@ export async function getDeviceList(token: string, email: string): Promise<Devic
     token,
     mailbox: email,
   })
-  if (data && data.code === 1 && Array.isArray(data.data)) return data.data
+  const list = asObject(data)
+  if (list && list.code === 1 && Array.isArray(list.data)) return list.data as Device[]
   return []
 }
 
@@ -129,7 +142,7 @@ export function firmwareParams(
 }
 
 /** System firmware (Control/BMS/MPPT/Micro), CT (AcCouple) or B2500 depending on type. */
-export async function getFirmwareInfo(device: Device, token: string, email: string): Promise<any> {
+export async function getFirmwareInfo(device: Device, token: string, email: string): Promise<unknown> {
   return proxyGet(firmwareParams(device, token, email))
 }
 
@@ -144,13 +157,14 @@ export interface UpdateSummary {
  * modules the server actually offers an update for are listed (that's all the
  * API returns — the unchanged modules come back empty).
  */
-export function firmwareUpdateSummary(fw: any): UpdateSummary {
+export function firmwareUpdateSummary(fw: unknown): UpdateSummary {
   const modules: { label: string; version: string }[] = []
+  const response = asObject(fw)
   // CT devices: single firmware with a flat `newVerion`.
-  if (fw?.newVerion && typeof fw.data === 'string') {
-    return { hasUpdate: true, modules: [{ label: 'Firmware', version: String(fw.newVerion) }] }
+  if (response?.newVerion && typeof response.data === 'string') {
+    return { hasUpdate: true, modules: [{ label: 'Firmware', version: String(response.newVerion) }] }
   }
-  const data = fw?.data
+  const data = asObject(response?.data)
   const map: [string, string][] = [
     ['control', 'Control'],
     ['bms', 'BMS'],
@@ -161,8 +175,8 @@ export function firmwareUpdateSummary(fw: any): UpdateSummary {
     ['charger', 'Charger'],
   ]
   for (const [slot, label] of map) {
-    const s = data?.[slot]
-    if (s && typeof s === 'object' && s.version) modules.push({ label, version: String(s.version) })
+    const s = asObject(data?.[slot])
+    if (s && s.version) modules.push({ label, version: String(s.version) })
   }
   return { hasUpdate: modules.length > 0, modules }
 }
@@ -191,7 +205,7 @@ export async function getCommunicationFirmware(
   device: Device,
   token: string,
   email: string,
-): Promise<any> {
+): Promise<unknown> {
   return proxyGet(communicationParams(device, token, email))
 }
 
@@ -213,7 +227,7 @@ export async function submitDiagnostics(payload: Record<string, unknown>): Promi
 }
 
 /** Read-only advanced device settings (getAdvance). */
-export async function getAdvancedSettings(device: Device, token: string): Promise<any> {
+export async function getAdvancedSettings(device: Device, token: string): Promise<unknown> {
   return proxyGet({
     endpoint: '/ems/api/v1/getAdvance',
     token,
@@ -230,14 +244,14 @@ export function hamedataUrl(params: Record<string, string>): string {
 }
 
 /** Run an arbitrary hamedata URL through the proxy (for the advanced API tester). */
-export async function testHamedataUrl(fullUrl: string): Promise<{ status: number; response: any }> {
+export async function testHamedataUrl(fullUrl: string): Promise<{ status: number; response: unknown }> {
   const u = new URL(fullUrl)
   const endpoint = u.pathname + u.search
   const res = await fetch(`${PROXY}?endpoint=${encodeURIComponent(endpoint)}`, {
     headers: { Accept: 'application/json' },
   })
   const text = await res.text()
-  let response: any
+  let response: unknown
   try {
     response = JSON.parse(text)
   } catch {
@@ -257,13 +271,19 @@ export interface CommunicationFirmware {
  *   update:   {"code":1,"data":{"version":"…","url":"…rbl"}}
  *   up-to-date: {"code":0,"msg":"固件已经最新"}  (no usable data)
  */
-export function parseCommunicationFirmware(resp: any): CommunicationFirmware {
+export function parseCommunicationFirmware(resp: unknown): CommunicationFirmware {
   const empty: CommunicationFirmware = { hasUpdate: false, version: null, url: null }
-  if (!resp || resp.error) return empty
-  let data = resp.data
-  if (Array.isArray(data)) data = data[0]
-  if (!data || typeof data !== 'object') return empty
-  return { hasUpdate: Boolean(data.url), version: data.version ?? null, url: data.url ?? null }
+  const response = asObject(resp)
+  if (!response || response.error) return empty
+  let payload = response.data
+  if (Array.isArray(payload)) payload = payload[0]
+  const data = asObject(payload)
+  if (!data) return empty
+  return {
+    hasUpdate: Boolean(data.url),
+    version: (data.version as string | undefined) ?? null,
+    url: (data.url as string | undefined) ?? null,
+  }
 }
 
 export interface ArchiveStatus {

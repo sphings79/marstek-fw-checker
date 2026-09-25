@@ -14,6 +14,13 @@ import { getFirmwareInfo, firmwareUpdateSummary, type Device, type UpdateSummary
 
 type Check = { kind: 'checking' } | { kind: 'done'; summary: UpdateSummary } | { kind: 'error' }
 
+interface CheckResult {
+  device: Device
+  token: string
+  email: string
+  check: Check
+}
+
 export function DeviceCard({
   device,
   token,
@@ -28,19 +35,24 @@ export function DeviceCard({
   demoSummary?: UpdateSummary // screenshot/demo mode: force the badge, skip fetch
 }) {
   const img = deviceImage(device)
-  const [check, setCheck] = useState<Check>(
-    demoSummary ? { kind: 'done', summary: demoSummary } : { kind: 'checking' },
-  )
+  // The result remembers which device/token/email it was checked for; until
+  // the answer for the current ones is in, the card shows "checking".
+  const [result, setResult] = useState<CheckResult | null>(null)
+  const check: Check = demoSummary
+    ? { kind: 'done', summary: demoSummary }
+    : result && result.device === device && result.token === token && result.email === email
+      ? result.check
+      : { kind: 'checking' }
 
   // Non-blocking per-card firmware check: the card renders immediately and the
   // update badge fills in when the check returns, so the overview isn't delayed.
   useEffect(() => {
     if (demoSummary) return
     let alive = true
-    setCheck({ kind: 'checking' })
+    const done = (next: Check) => alive && setResult({ device, token, email, check: next })
     getFirmwareInfo(device, token, email)
-      .then((fw) => alive && setCheck({ kind: 'done', summary: firmwareUpdateSummary(fw) }))
-      .catch(() => alive && setCheck({ kind: 'error' }))
+      .then((fw) => done({ kind: 'done', summary: firmwareUpdateSummary(fw) }))
+      .catch(() => done({ kind: 'error' }))
     return () => {
       alive = false
     }

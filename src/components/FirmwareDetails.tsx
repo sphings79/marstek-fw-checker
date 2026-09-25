@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Accordion from '@mui/material/Accordion'
 import AccordionDetails from '@mui/material/AccordionDetails'
 import AccordionSummary from '@mui/material/AccordionSummary'
@@ -22,6 +22,7 @@ import {
   getCommunicationFirmware,
   parseCommunicationFirmware,
   maskValue,
+  asObject,
   type Device,
 } from '../lib/api.ts'
 import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
@@ -51,21 +52,22 @@ function filenameFromUrl(url: string | undefined, fallback: string): string {
 }
 
 // Build the list of downloadable firmware entries from the two API responses.
-function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
+function buildEntries(device: Device, fw: unknown, comm: unknown): FwEntry[] {
   const entries: FwEntry[] = []
   const deviceType = device.type || ''
-  const data = fw?.data
+  const response = asObject(fw)
+  const data = response?.data
 
   // CT devices (HME-3/HME-4): single firmware, flat archive layout.
-  if (fw?.newVerion && typeof data === 'string') {
-    const version = String(fw.newVerion)
+  if (response?.newVerion && typeof data === 'string') {
+    const version = String(response.newVerion)
     entries.push({
       key: 'ct',
       label: 'Firmware',
       version,
       url: data,
       filename: filenameFromUrl(data, `firmware_v${version}.bin`),
-      note: fw.english || fw.chinese,
+      note: (response.english || response.chinese) as string | undefined,
       archive: {
         deviceType,
         archiveType: '',
@@ -86,16 +88,17 @@ function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
     { slot: 'micro', label: 'Inverter (Micro)', archiveType: 'Micro', submitType: 'MPPT' },
   ]
   for (const m of modules) {
-    const slot = data?.[m.slot]
+    const slot = asObject(asObject(data)?.[m.slot])
     if (slot && slot.version) {
       const version = String(slot.version)
+      const url = slot.url as string | undefined
       entries.push({
         key: m.slot,
         label: m.label,
         version,
-        url: slot.url,
-        filename: filenameFromUrl(slot.url, `${m.slot}_v${version}.bin`),
-        note: slot.remark || slot.chinese,
+        url,
+        filename: filenameFromUrl(url, `${m.slot}_v${version}.bin`),
+        note: (slot.remark || slot.chinese) as string | undefined,
         archive: {
           deviceType,
           archiveType: m.archiveType,
@@ -104,7 +107,7 @@ function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
           device,
           metadata: {
             firmwareType: m.archiveType,
-            url: slot.url,
+            url,
             remark: slot.remark,
             chinese: slot.chinese,
             apiResponse: fw,
@@ -138,6 +141,20 @@ function buildEntries(device: Device, fw: any, comm: any): FwEntry[] {
   return entries
 }
 
+interface Responses {
+  firmware: unknown
+  communication: unknown
+}
+
+interface LiveResult {
+  device: Device
+  token: string
+  email: string
+  entries: FwEntry[]
+  raw: Responses | null
+  error: string | null
+}
+
 export function FirmwareDetails({
   device,
   token,
@@ -149,45 +166,52 @@ export function FirmwareDetails({
   token: string
   email: string
   onClose: () => void
-  demoResponses?: { firmware: any; communication: any } // screenshot/demo mode
+  demoResponses?: Responses // screenshot/demo mode
 }) {
   const theme = useTheme()
   const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [entries, setEntries] = useState<FwEntry[]>([])
-  const [raw, setRaw] = useState<{ firmware: any; communication: any } | null>(null)
+  // The live result remembers which device/token/email it belongs to, so a
+  // change of any of them reads as loading until the new answer is in.
+  const [live, setLive] = useState<LiveResult | null>(null)
+
+  const demo = useMemo(
+    () =>
+      demoResponses && {
+        entries: buildEntries(device, demoResponses.firmware, demoResponses.communication),
+        raw: demoResponses,
+        error: null,
+      },
+    [device, demoResponses],
+  )
+  const current =
+    live && live.device === device && live.token === token && live.email === email ? live : null
+  const shown = demo ?? current
+  const loading = !shown
+  const error = shown?.error ?? null
+  const entries = shown?.entries ?? []
+  const raw = shown?.raw ?? null
 
   useEffect(() => {
-    if (demoResponses) {
-      setEntries(buildEntries(device, demoResponses.firmware, demoResponses.communication))
-      setRaw(demoResponses)
-      setLoading(false)
-      return
-    }
+    if (demoResponses) return
     let alive = true
-    setLoading(true)
-    setError(null)
+    const done = (result: Omit<LiveResult, 'device' | 'token' | 'email'>) =>
+      alive && setLive({ device, token, email, ...result })
     Promise.allSettled([
       getFirmwareInfo(device, token, email),
       getCommunicationFirmware(device, token, email),
     ]).then(([fwRes, commRes]) => {
-      if (!alive) return
       if (fwRes.status === 'rejected') {
-        setError(fwRes.reason?.message || 'Failed to load firmware data')
-        setLoading(false)
+        done({ entries: [], raw: null, error: fwRes.reason?.message || 'Failed to load firmware data' })
         return
       }
       const fw = fwRes.value
       const comm = commRes.status === 'fulfilled' ? commRes.value : { error: String(commRes.reason?.message) }
-      setEntries(buildEntries(device, fw, comm))
-      setRaw({ firmware: fw, communication: comm })
-      setLoading(false)
+      done({ entries: buildEntries(device, fw, comm), raw: { firmware: fw, communication: comm }, error: null })
     })
     return () => {
       alive = false
     }
-  }, [device, token, email])
+  }, [device, token, email, demoResponses])
 
   const img = deviceImage(device)
 
