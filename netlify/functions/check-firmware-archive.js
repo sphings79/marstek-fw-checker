@@ -58,7 +58,8 @@ exports.handler = async (event) => {
 
         // Validate device types
         // VNSD-0 (Marstek Venus D) und VNSA-0 (Marstek Venus A) ergänzt; HMJ-2 (B2500D) aus upstream.
-        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'HME-4', 'HME-3', 'HMJ-2'];
+        // Venus E 4.0 / Pro / Mini / Max: real type codes unknown yet; VNSE4-0 and VEPRO-0..VNSEMAX-0 are guesses, remove the wrong ones once confirmed.
+        const validDeviceTypes = ['HMG-50', 'HMG-25', 'VNSE3-0', 'VNSD-0', 'VNSA-0', 'VEPRO-0', 'VEPRO', 'VNSEP-0', 'VNSEPRO-0', 'VNSE4-0', 'VEMINI-0', 'VEMINI', 'VNSEM-0', 'VNSEMINI-0', 'VEMAX-0', 'VEMAX', 'VNSEMAX-0', 'HME-4', 'HME-3', 'HMJ-2'];
         if (!validDeviceTypes.includes(deviceType)) {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid device type', validTypes: validDeviceTypes, provided: deviceType }) };
         }

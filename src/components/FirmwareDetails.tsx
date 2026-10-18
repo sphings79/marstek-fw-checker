@@ -26,7 +26,7 @@ import {
   type Device,
 } from '../lib/api.ts'
 import { DownloadDonate, type ArchiveTarget } from './DownloadDonate.tsx'
-import { deviceImage } from '../lib/deviceImage.ts'
+import { deviceImage, imageFallback } from '../lib/deviceImage.ts'
 import { ReleaseNote } from './ReleaseNote.tsx'
 import { ApiTester } from './ApiTester.tsx'
 import { AdvancedSettings } from './AdvancedSettings.tsx'
@@ -218,7 +218,7 @@ export function FirmwareDetails({
   return (
     <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth>
       <Box sx={{ display: 'flex', alignItems: 'center', p: 2, pb: 1 }}>
-        <Box component="img" src={img.src} alt={img.alt} sx={{ height: 40, mr: 1.5 }} />
+        <Box component="img" src={img.src} alt={img.alt} onError={imageFallback} sx={{ height: 40, mr: 1.5 }} />
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Typography variant="h2" sx={{ fontSize: '1.1rem' }} noWrap>
             {device.name || `Device ${device.devid}`}

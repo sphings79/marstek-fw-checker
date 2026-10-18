@@ -35,3 +35,6 @@ dist/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Local backup of product images (hotlinked from Marstek CDN, not redistributed)
+product-images/

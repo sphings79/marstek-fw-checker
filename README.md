@@ -76,6 +76,10 @@ it's still available.
 |--------|-----------|
 | Marstek Venus D | `VNSD-0` |
 | Marstek Venus A | `VNSA-0` |
+| Marstek Venus E Pro | `VEPRO-0` (unconfirmed, may change) |
+| Marstek Venus E Mini | `VEMINI-0` (unconfirmed, may change) |
+| Marstek Venus E Max | `VEMAX-0` (unconfirmed, may change) |
+| Marstek Venus E 4.0 (V4) | `VNSE4-0` (unconfirmed, may change) |
 | Marstek Venus E 3.0 (V3) | `VNSE3-0` |
 | Marstek Venus E (V1 / V2) | `HMG-50` |
 | Marstek Venus C | `HMG-25` |

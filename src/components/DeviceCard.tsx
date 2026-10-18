@@ -9,7 +9,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import UpgradeIcon from '@mui/icons-material/Upgrade'
-import { deviceImage } from '../lib/deviceImage.ts'
+import { deviceImage, imageFallback } from '../lib/deviceImage.ts'
 import { getFirmwareInfo, firmwareUpdateSummary, type Device, type UpdateSummary } from '../lib/api.ts'
 
 type Check = { kind: 'checking' } | { kind: 'done'; summary: UpdateSummary } | { kind: 'error' }
@@ -75,6 +75,7 @@ export function DeviceCard({
             component="img"
             src={img.src}
             alt={img.alt}
+            onError={imageFallback}
             loading="lazy"
             sx={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
           />
