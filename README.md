@@ -77,7 +77,7 @@ it's still available.
 | Marstek Venus D | `VNSD-0` |
 | Marstek Venus A | `VNSA-0` |
 | Marstek Venus E Pro | `VEPRO-0` (unconfirmed, may change) |
-| Marstek Venus E Mini | `VEMINI-0` (unconfirmed, may change) |
+| Marstek Venus E Mini | `VNSEMINI-0` |
 | Marstek Venus E Max | `VEMAX-0` (unconfirmed, may change) |
 | Marstek Venus E 4.0 (V4) | `VNSE4-0` (unconfirmed, may change) |
 | Marstek Venus E 3.0 (V3) | `VNSE3-0` |
@@ -85,6 +85,7 @@ it's still available.
 | Marstek Venus C | `HMG-25` |
 | Marstek B2500-D | `HMJ-2` |
 | Marstek smart meter / CT (e.g. CT002, P1) | `HME-3`, `HME-4` |
+| Other types seen in real accounts (model name not confirmed) | `HMG-1`, `HMI-1`, `HMI-5`, `JPLS-8H`, `TPM2-0`, `SMR-0` |
 | FC41D Wi-Fi / communication module | firmware type on Venus / B2500 |
 
 Development and testing focus on the **Venus D (VNSD-0)**. Other models use the same
