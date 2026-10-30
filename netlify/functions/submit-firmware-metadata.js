@@ -43,7 +43,7 @@ function validateOrigin(headers) {
 function validateMetadata(metadata) {
     const required = ['deviceType', 'version'];
     // Single-firmware devices do not require a firmwareType.
-    const isSingleFirmwareDevice = metadata.deviceType && ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
+    const isSingleFirmwareDevice = metadata.deviceType && ['HME-4', 'HME-3', 'HMJ-2', 'JPLS-8H', 'SMR-0'].includes(metadata.deviceType);
     if (!isSingleFirmwareDevice) {
         required.push('firmwareType');
     }
@@ -156,7 +156,7 @@ exports.handler = async (event) => {
         const repo  = 'marstek-firmware-archiv';
 
         // Determine whether this device uses the single-firmware archive layout.
-        const isSingleFirmwareDevice = ['HME-4', 'HME-3', 'HMJ-2'].includes(metadata.deviceType);
+        const isSingleFirmwareDevice = ['HME-4', 'HME-3', 'HMJ-2', 'JPLS-8H', 'SMR-0'].includes(metadata.deviceType);
 
         // Check for existing open issues for the same firmware version
         const searchQuery = isSingleFirmwareDevice

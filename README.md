@@ -85,7 +85,8 @@ it's still available.
 | Marstek Venus C | `HMG-25` |
 | Marstek B2500-D | `HMJ-2` |
 | Marstek smart meter / CT (e.g. CT002, P1) | `HME-3`, `HME-4` |
-| Other types seen in real accounts (model name not confirmed) | `HMG-1`, `HMI-1`, `HMI-5`, `JPLS-8H`, `TPM2-0`, `SMR-0` |
+| Marstek Jupiter C Plus | `JPLS-8H` (model name not confirmed) |
+| Other types seen in real accounts (model name not confirmed) | `HMG-1`, `HMI-1`, `HMI-5`, `TPM2-0`, `SMR-0` |
 | FC41D Wi-Fi / communication module | firmware type on Venus / B2500 |
 
 Development and testing focus on the **Venus D (VNSD-0)**. Other models use the same

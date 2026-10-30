@@ -58,7 +58,7 @@ function buildEntries(device: Device, fw: unknown, comm: unknown): FwEntry[] {
   const response = asObject(fw)
   const data = response?.data
 
-  // CT devices (HME-3/HME-4): single firmware, flat archive layout.
+  // CT-style devices (HME-3/HME-4, JPLS-8H, SMR-0): single firmware, flat archive layout.
   if (response?.newVerion && typeof data === 'string') {
     const version = String(response.newVerion)
     entries.push({

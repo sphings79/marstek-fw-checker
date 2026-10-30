@@ -96,7 +96,8 @@ export function firmwareParams(
 ): Record<string, string> {
   const type = device.type
   const isB2500D = type === 'HMJ-2'
-  const isCT = type === 'HME-3' || type === 'HME-4'
+  // Meters and the Jupiter/SMR modules answer on the AcCouple endpoint (single firmware, flat `newVerion`).
+  const isCT = ['HME-3', 'HME-4', 'JPLS-8H', 'SMR-0'].includes(type || '')
 
   let params: Record<string, string>
   if (isB2500D) {

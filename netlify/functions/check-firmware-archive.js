@@ -45,7 +45,7 @@ exports.handler = async (event) => {
         const { deviceType, firmwareType, version } = params;
 
         // Validate required parameters
-        const singleFirmwareDevices = ['HME-4', 'HME-3', 'HMJ-2'];
+        const singleFirmwareDevices = ['HME-4', 'HME-3', 'HMJ-2', 'JPLS-8H', 'SMR-0'];
         const requiredParams = (deviceType && singleFirmwareDevices.includes(deviceType))
             ? ['deviceType', 'version']
             : ['deviceType', 'firmwareType', 'version'];
