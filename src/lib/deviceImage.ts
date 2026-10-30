@@ -45,6 +45,22 @@ export function deviceImage(device: Device): { src: string; alt: string } {
   if (type === 'HME-4') {
     return { src: 'https://marstekenergy.com/cdn/shop/files/3_894259a1-4bf3-4f47-b87b-72efab6ea298.jpg?v=1740573047', alt: 'HME-4' }
   }
+  if (type === 'JPLS-8H') {
+    return { src: 'https://marstek.de/cdn/shop/files/Jupiter-C-Plus_bat0.webp?v=1782876439&width=600', alt: 'Jupiter C Plus' }
+  }
+  if (type === 'HMI-1') {
+    return { src: 'https://marstek.de/cdn/shop/files/MI800W_Main.webp?v=1783921589&width=800', alt: 'Saturn M 800 W' }
+  }
+  // HMI-5 (Saturn M2-1000): the shop image covers the whole 800-2000 W microinverter line
+  if (type === 'HMI-5') {
+    return { src: 'https://marstekenergy.com/cdn/shop/files/800W-1.jpg?v=1784518237', alt: 'Saturn M2-1000' }
+  }
+  if (type === 'TPM2-0') {
+    return { src: 'https://marstek.de/cdn/shop/files/CT002-Main.webp?v=1770690339&width=800', alt: 'CT002 TPM2-100CT' }
+  }
+  if (type === 'HMJ-2') {
+    return { src: 'https://marstek.de/cdn/shop/files/Saturn-B2500D_main1.webp?v=1787712839&width=600', alt: 'B2500-D' }
+  }
   if (type === 'HMG-25') {
     return { src: 'https://marstekenergy.com/cdn/shop/files/1_2_d5e4109f-859e-46be-be9b-40e262490d4f.jpg?v=1740540638', alt: 'Venus C' }
   }

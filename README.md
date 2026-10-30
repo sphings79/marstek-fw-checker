@@ -85,8 +85,12 @@ it's still available.
 | Marstek Venus C | `HMG-25` |
 | Marstek B2500-D | `HMJ-2` |
 | Marstek smart meter / CT (e.g. CT002, P1) | `HME-3`, `HME-4` |
-| Marstek Jupiter C Plus | `JPLS-8H` (model name not confirmed) |
-| Other types seen in real accounts (model name not confirmed) | `HMG-1`, `HMI-1`, `HMI-5`, `TPM2-0`, `SMR-0` |
+| Marstek Jupiter C Plus | `JPLS-8H` |
+| Marstek P1 Meter CT003 | `SMR-0` |
+| Marstek Saturn M microinverter 800 W | `HMI-1` |
+| Marstek Saturn M2-1000 microinverter 1000 W | `HMI-5` |
+| Marstek CT002 Smart Power Meter TPM2-100CT | `TPM2-0` |
+| Marstek Venus E 2.0 | `HMG-1` |
 | FC41D Wi-Fi / communication module | firmware type on Venus / B2500 |
 
 Development and testing focus on the **Venus D (VNSD-0)**. Other models use the same
