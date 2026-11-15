@@ -117,6 +117,28 @@ function buildEntries(device: Device, fw: unknown, comm: unknown): FwEntry[] {
     }
   }
 
+  // Modules the archive cannot take yet (no valid archive type): download only.
+  const extraModules: { slot: string; label: string }[] = [
+    { slot: 'dcdc', label: 'DCDC' },
+    { slot: 'led', label: 'LED' },
+    { slot: 'charger', label: 'Charger' },
+  ]
+  for (const m of extraModules) {
+    const slot = asObject(asObject(data)?.[m.slot])
+    if (slot && slot.version) {
+      const version = String(slot.version)
+      const url = slot.url as string | undefined
+      entries.push({
+        key: m.slot,
+        label: m.label,
+        version,
+        url,
+        filename: filenameFromUrl(url, `${m.slot}_v${version}.bin`),
+        note: (slot.remark || slot.chinese) as string | undefined,
+      })
+    }
+  }
+
   // FC41D communication module.
   const c = parseCommunicationFirmware(comm)
   if (c.hasUpdate && c.url) {

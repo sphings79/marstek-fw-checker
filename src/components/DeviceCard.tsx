@@ -51,7 +51,7 @@ export function DeviceCard({
     let alive = true
     const done = (next: Check) => alive && setResult({ device, token, email, check: next })
     getFirmwareInfo(device, token, email)
-      .then((fw) => done({ kind: 'done', summary: firmwareUpdateSummary(fw) }))
+      .then((fw) => done({ kind: 'done', summary: firmwareUpdateSummary(fw, device.version) }))
       .catch(() => done({ kind: 'error' }))
     return () => {
       alive = false

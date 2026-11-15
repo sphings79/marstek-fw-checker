@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Update the deployed Marstek Firmware Downloader to the latest committed version.
-# Run from the app directory on the server:  sudo ./deploy.sh
+# Run from the app directory on the server:
+#   sudo ./deploy.sh          # deploy master (default)
+#   sudo ./deploy.sh beta     # deploy the beta branch
+#   sudo ./deploy.sh v2.0.1   # deploy a tag (e.g. rollback; detached HEAD)
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -9,11 +12,17 @@ cd "$(dirname "$0")"
 git config --global --get-all safe.directory 2>/dev/null | grep -qxF "$PWD" \
   || git config --global --add safe.directory "$PWD"
 
-echo "==> git pull"
+REF="${1:-master}"
+echo "==> git fetch + checkout $REF"
 # npm install can rewrite package-lock.json locally (differing npm versions),
 # which then blocks the pull. Discard that regenerated-file churn first.
 git checkout -- package-lock.json 2>/dev/null || true
-git pull --ff-only
+git fetch --tags origin
+git checkout "$REF"
+# Branches fast-forward; tags leave a detached HEAD, nothing to pull.
+if git symbolic-ref -q HEAD >/dev/null; then
+  git pull --ff-only origin "$REF"
+fi
 
 echo "==> npm install"
 npm install

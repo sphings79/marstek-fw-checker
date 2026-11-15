@@ -58,6 +58,10 @@ export function Footer() {
         Unofficial community tool — not affiliated with Marstek. Shows available firmware, not whether your
         device needs updating.
       </Typography>
+      {/* On phones the version lives in the header menu instead. */}
+      <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'block' }, mt: 1, opacity: 0.7 }}>
+        {__APP_VERSION__}
+      </Typography>
     </Box>
   )
 }

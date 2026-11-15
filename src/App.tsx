@@ -4,9 +4,15 @@ import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Container from '@mui/material/Container'
+import Divider from '@mui/material/Divider'
+import IconButton from '@mui/material/IconButton'
+import ListItemIcon from '@mui/material/ListItemIcon'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import Toolbar from '@mui/material/Toolbar'
 import Typography from '@mui/material/Typography'
 import LogoutIcon from '@mui/icons-material/Logout'
+import MenuIcon from '@mui/icons-material/Menu'
 import MemoryIcon from '@mui/icons-material/Memory'
 import { Login } from './components/Login.tsx'
 import { DeviceCard } from './components/DeviceCard.tsx'
@@ -25,6 +31,7 @@ interface Session {
 export function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [selected, setSelected] = useState<Device | null>(null)
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   if (typeof location !== 'undefined' && location.search.includes('demo')) return <Demo />
 
   function onLogin(result: AuthResult, email: string) {
@@ -51,10 +58,43 @@ export function App() {
           </Typography>
           <ColorModeToggle />
           {session && (
-            <Button color="inherit" startIcon={<LogoutIcon />} onClick={logout}>
+            <Button
+              color="inherit"
+              startIcon={<LogoutIcon />}
+              onClick={logout}
+              sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+            >
               Logout
             </Button>
           )}
+          {/* Phones: burger menu with logout and the app version. */}
+          <IconButton
+            color="inherit"
+            aria-label="Menu"
+            onClick={(e) => setMenuAnchor(e.currentTarget)}
+            sx={{ display: { xs: 'inline-flex', sm: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+            {session && (
+              <MenuItem
+                onClick={() => {
+                  setMenuAnchor(null)
+                  logout()
+                }}
+              >
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" />
+                </ListItemIcon>
+                Logout
+              </MenuItem>
+            )}
+            {session && <Divider component="li" />}
+            <MenuItem disabled sx={{ '&.Mui-disabled': { opacity: 0.7 } }}>
+              {__APP_VERSION__}
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 

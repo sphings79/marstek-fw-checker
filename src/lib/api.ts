@@ -158,11 +158,16 @@ export interface UpdateSummary {
  * modules the server actually offers an update for are listed (that's all the
  * API returns — the unchanged modules come back empty).
  */
-export function firmwareUpdateSummary(fw: unknown): UpdateSummary {
+export function firmwareUpdateSummary(fw: unknown, installed?: string | number): UpdateSummary {
   const modules: { label: string; version: string }[] = []
   const response = asObject(fw)
   // CT devices: single firmware with a flat `newVerion`.
   if (response?.newVerion && typeof response.data === 'string') {
+    // The server answers with the latest firmware even when it is already installed;
+    // the device list reports the installed version, so compare.
+    if (installed != null && String(installed) === String(response.newVerion)) {
+      return { hasUpdate: false, modules: [] }
+    }
     return { hasUpdate: true, modules: [{ label: 'Firmware', version: String(response.newVerion) }] }
   }
   const data = asObject(response?.data)
